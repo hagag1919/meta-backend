@@ -16,14 +16,10 @@ import ProjectsPage from './pages/projects/ProjectsPage';
 // Task pages
 import TasksPage from './pages/tasks/TasksPage';
 
-// Placeholder components for other pages
+// User pages
+import UsersPage from './pages/users/UsersPage';
 
-const UsersPage = () => (
-  <div className="p-6">
-    <h1 className="text-2xl font-bold">Users</h1>
-    <p>User management coming soon...</p>
-  </div>
-);
+// Placeholder components for other pages
 
 const ClientsPage = () => (
   <div className="p-6">
