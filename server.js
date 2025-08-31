@@ -69,6 +69,10 @@ app.use(cors({
     
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
+    }
+    // Check if origin matches https://*.onrender.com pattern
+    else if (origin && origin.match(/^https:\/\/.*\.onrender\.com$/)) {
+      callback(null, true);
     } else {
       console.warn(`CORS blocked origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));

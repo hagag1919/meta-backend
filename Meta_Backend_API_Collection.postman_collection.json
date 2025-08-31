@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:3001",
+      "value": "https://meta-backend-hqm9.onrender.com",
       "type": "string"
     },
     {
@@ -59,8 +59,8 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "http://localhost:3001/health",
-          "host": ["http://localhost:3001"],
+          "raw": "https://meta-backend-hqm9.onrender.com/health",
+          "host": ["https://meta-backend-hqm9.onrender.com"],
           "path": ["health"]
         }
       },
@@ -101,8 +101,8 @@
               "raw": "{\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"password\": \"SecurePass123!\",\n    \"role\": \"administrator\",\n    \"department\": \"IT\"\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/auth/register",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/auth/register",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "auth", "register"]
             }
           }
@@ -139,8 +139,8 @@
               "raw": "{\n    \"email\": \"john.doe@example.com\",\n    \"password\": \"SecurePass123!\"\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/auth/login",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/auth/login",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "auth", "login"]
             }
           }
@@ -160,8 +160,8 @@
               "raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/auth/refresh",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/auth/refresh",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "auth", "refresh"]
             }
           }
@@ -172,8 +172,8 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/auth/logout",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/auth/logout",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "auth", "logout"]
             }
           }
@@ -196,8 +196,8 @@
               "raw": "{\n    \"email\": \"john.doe@example.com\"\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/auth/forgot-password",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/auth/forgot-password",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "auth", "forgot-password"]
             }
           }
@@ -220,8 +220,8 @@
               "raw": "{\n    \"token\": \"reset_token_here\",\n    \"newPassword\": \"NewSecurePass123!\"\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/auth/reset-password",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/auth/reset-password",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "auth", "reset-password"]
             }
           }
@@ -237,8 +237,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/users",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/users",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "users"]
             }
           }
@@ -249,8 +249,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/users/{{userId}}",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/users/{{userId}}",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "users", "{{userId}}"]
             }
           }
@@ -270,8 +270,8 @@
               "raw": "{\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe Updated\",\n    \"email\": \"john.doe@example.com\",\n    \"department\": \"Engineering\"\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/users/{{userId}}",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/users/{{userId}}",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "users", "{{userId}}"]
             }
           }
@@ -291,8 +291,8 @@
               "raw": "{\n    \"currentPassword\": \"SecurePass123!\",\n    \"newPassword\": \"NewSecurePass123!\"\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/users/{{userId}}/password",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/users/{{userId}}/password",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "users", "{{userId}}", "password"]
             }
           }
@@ -303,8 +303,8 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/users/{{userId}}",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/users/{{userId}}",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "users", "{{userId}}"]
             }
           }
@@ -342,8 +342,8 @@
               "raw": "{\n    \"name\": \"Meta Software Project\",\n    \"description\": \"Main software development project\",\n    \"clientId\": \"{{clientId}}\",\n    \"status\": \"active\",\n    \"startDate\": \"2024-01-01\",\n    \"endDate\": \"2024-12-31\",\n    \"budget\": 100000\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/projects",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/projects",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "projects"]
             }
           }
@@ -354,8 +354,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/projects",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/projects",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "projects"]
             }
           }
@@ -366,8 +366,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/projects/{{projectId}}",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/projects/{{projectId}}",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "projects", "{{projectId}}"]
             }
           }
@@ -387,8 +387,8 @@
               "raw": "{\n    \"name\": \"Meta Software Project Updated\",\n    \"description\": \"Updated project description\",\n    \"status\": \"in_progress\",\n    \"budget\": 120000\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/projects/{{projectId}}",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/projects/{{projectId}}",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "projects", "{{projectId}}"]
             }
           }
@@ -399,8 +399,8 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/projects/{{projectId}}",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/projects/{{projectId}}",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "projects", "{{projectId}}"]
             }
           }
@@ -411,8 +411,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/projects/{{projectId}}/members",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/projects/{{projectId}}/members",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "projects", "{{projectId}}", "members"]
             }
           }
@@ -432,8 +432,8 @@
               "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"role\": \"developer\"\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/projects/{{projectId}}/members",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/projects/{{projectId}}/members",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "projects", "{{projectId}}", "members"]
             }
           }
@@ -471,8 +471,8 @@
               "raw": "{\n    \"title\": \"Implement User Authentication\",\n    \"description\": \"Create login and registration functionality\",\n    \"projectId\": \"{{projectId}}\",\n    \"assigneeId\": \"{{userId}}\",\n    \"priority\": \"high\",\n    \"status\": \"todo\",\n    \"dueDate\": \"2024-02-15\",\n    \"estimatedHours\": 20\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/tasks",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/tasks",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "tasks"]
             }
           }
@@ -483,8 +483,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/tasks",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/tasks",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "tasks"]
             }
           }
@@ -495,8 +495,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/tasks/{{taskId}}",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/tasks/{{taskId}}",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "tasks", "{{taskId}}"]
             }
           }
@@ -516,8 +516,8 @@
               "raw": "{\n    \"title\": \"Implement User Authentication - Updated\",\n    \"status\": \"in_progress\",\n    \"progress\": 50\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/tasks/{{taskId}}",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/tasks/{{taskId}}",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "tasks", "{{taskId}}"]
             }
           }
@@ -528,8 +528,8 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/tasks/{{taskId}}",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/tasks/{{taskId}}",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "tasks", "{{taskId}}"]
             }
           }
@@ -540,8 +540,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/tasks/project/{{projectId}}",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/tasks/project/{{projectId}}",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "tasks", "project", "{{projectId}}"]
             }
           }
@@ -552,8 +552,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/tasks/user/{{userId}}",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/tasks/user/{{userId}}",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "tasks", "user", "{{userId}}"]
             }
           }
@@ -591,8 +591,8 @@
               "raw": "{\n    \"name\": \"Acme Corporation\",\n    \"email\": \"contact@acme.com\",\n    \"phone\": \"+1-555-0123\",\n    \"address\": \"123 Business St, City, State 12345\",\n    \"contactPerson\": \"Jane Smith\",\n    \"status\": \"active\"\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/clients",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/clients",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "clients"]
             }
           }
@@ -603,8 +603,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/clients",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/clients",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "clients"]
             }
           }
@@ -615,8 +615,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/clients/{{clientId}}",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/clients/{{clientId}}",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "clients", "{{clientId}}"]
             }
           }
@@ -636,8 +636,8 @@
               "raw": "{\n    \"name\": \"Acme Corporation Updated\",\n    \"email\": \"updated@acme.com\",\n    \"phone\": \"+1-555-0124\"\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/clients/{{clientId}}",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/clients/{{clientId}}",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "clients", "{{clientId}}"]
             }
           }
@@ -648,8 +648,8 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/clients/{{clientId}}",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/clients/{{clientId}}",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "clients", "{{clientId}}"]
             }
           }
@@ -665,8 +665,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/dashboard/stats",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/dashboard/stats",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "dashboard", "stats"]
             }
           }
@@ -677,8 +677,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/dashboard/activities",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/dashboard/activities",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "dashboard", "activities"]
             }
           }
@@ -689,8 +689,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/dashboard/tasks",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/dashboard/tasks",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "dashboard", "tasks"]
             }
           }
@@ -701,8 +701,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/dashboard/projects",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/dashboard/projects",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "dashboard", "projects"]
             }
           }
@@ -727,8 +727,8 @@
               "raw": "{\n    \"content\": \"This is a comment on the task\",\n    \"entityType\": \"task\",\n    \"entityId\": \"{{taskId}}\"\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/comments",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/comments",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "comments"]
             }
           }
@@ -739,8 +739,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/comments/task/{{taskId}}",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/comments/task/{{taskId}}",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "comments", "task", "{{taskId}}"]
             }
           }
@@ -760,8 +760,8 @@
               "raw": "{\n    \"content\": \"Updated comment content\"\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/comments/1",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/comments/1",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "comments", "1"]
             }
           }
@@ -772,8 +772,8 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/comments/1",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/comments/1",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "comments", "1"]
             }
           }
@@ -809,8 +809,8 @@
               ]
             },
             "url": {
-              "raw": "http://localhost:3001/api/files/upload",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/files/upload",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "files", "upload"]
             }
           }
@@ -821,8 +821,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/files/task/{{taskId}}",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/files/task/{{taskId}}",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "files", "task", "{{taskId}}"]
             }
           }
@@ -833,8 +833,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/files/download/1",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/files/download/1",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "files", "download", "1"]
             }
           }
@@ -845,8 +845,8 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/files/1",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/files/1",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "files", "1"]
             }
           }
@@ -871,8 +871,8 @@
               "raw": "{\n    \"taskId\": \"{{taskId}}\",\n    \"description\": \"Working on user authentication\"\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/time/start",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/time/start",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "time", "start"]
             }
           }
@@ -892,8 +892,8 @@
               "raw": "{\n    \"timeEntryId\": \"1\"\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/time/stop",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/time/stop",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "time", "stop"]
             }
           }
@@ -904,8 +904,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/time/entries",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/time/entries",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "time", "entries"]
             }
           }
@@ -916,8 +916,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/time/task/{{taskId}}",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/time/task/{{taskId}}",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "time", "task", "{{taskId}}"]
             }
           }
@@ -937,8 +937,8 @@
               "raw": "{\n    \"description\": \"Updated description\",\n    \"duration\": 3600\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/time/1",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/time/1",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "time", "1"]
             }
           }
@@ -949,8 +949,8 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/time/1",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/time/1",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "time", "1"]
             }
           }
@@ -988,8 +988,8 @@
               "raw": "{\n    \"clientId\": \"{{clientId}}\",\n    \"projectId\": \"{{projectId}}\",\n    \"invoiceNumber\": \"INV-001\",\n    \"amount\": 5000,\n    \"taxAmount\": 500,\n    \"dueDate\": \"2024-02-28\",\n    \"items\": [\n        {\n            \"description\": \"Development services\",\n            \"quantity\": 100,\n            \"rate\": 50,\n            \"amount\": 5000\n        }\n    ]\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/invoices",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/invoices",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "invoices"]
             }
           }
@@ -1000,8 +1000,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/invoices",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/invoices",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "invoices"]
             }
           }
@@ -1012,8 +1012,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/invoices/{{invoiceId}}",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/invoices/{{invoiceId}}",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "invoices", "{{invoiceId}}"]
             }
           }
@@ -1033,8 +1033,8 @@
               "raw": "{\n    \"amount\": 5500,\n    \"taxAmount\": 550,\n    \"status\": \"sent\"\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/invoices/{{invoiceId}}",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/invoices/{{invoiceId}}",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "invoices", "{{invoiceId}}"]
             }
           }
@@ -1045,8 +1045,8 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/invoices/{{invoiceId}}",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/invoices/{{invoiceId}}",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "invoices", "{{invoiceId}}"]
             }
           }
@@ -1057,8 +1057,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/invoices/{{invoiceId}}/pdf",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/invoices/{{invoiceId}}/pdf",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "invoices", "{{invoiceId}}", "pdf"]
             }
           }
@@ -1074,8 +1074,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/reports/time?startDate=2024-01-01&endDate=2024-01-31",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/reports/time?startDate=2024-01-01&endDate=2024-01-31",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "reports", "time"],
               "query": [
                 {
@@ -1096,8 +1096,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/reports/projects?status=active",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/reports/projects?status=active",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "reports", "projects"],
               "query": [
                 {
@@ -1114,8 +1114,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/reports/users/{{userId}}?startDate=2024-01-01&endDate=2024-01-31",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/reports/users/{{userId}}?startDate=2024-01-01&endDate=2024-01-31",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "reports", "users", "{{userId}}"],
               "query": [
                 {
@@ -1136,8 +1136,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/reports/financial?year=2024",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/reports/financial?year=2024",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "reports", "financial"],
               "query": [
                 {
@@ -1163,8 +1163,8 @@
               "raw": "{\n    \"type\": \"time\",\n    \"format\": \"pdf\",\n    \"startDate\": \"2024-01-01\",\n    \"endDate\": \"2024-01-31\"\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/reports/export",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/reports/export",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "reports", "export"]
             }
           }
@@ -1180,8 +1180,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/settings",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/settings",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "settings"]
             }
           }
@@ -1192,8 +1192,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/settings/timezone",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/settings/timezone",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "settings", "timezone"]
             }
           }
@@ -1213,8 +1213,8 @@
               "raw": "{\n    \"value\": \"America/New_York\"\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/settings/timezone",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/settings/timezone",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "settings", "timezone"]
             }
           }
@@ -1234,8 +1234,8 @@
               "raw": "{\n    \"key\": \"notification_enabled\",\n    \"value\": \"true\",\n    \"type\": \"boolean\"\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/settings",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/settings",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "settings"]
             }
           }
@@ -1246,8 +1246,8 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/settings/notification_enabled",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/settings/notification_enabled",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "settings", "notification_enabled"]
             }
           }
@@ -1272,8 +1272,8 @@
               "raw": "{\n    \"message\": \"Hello team!\",\n    \"channelId\": \"general\",\n    \"type\": \"text\"\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/chat/send",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/chat/send",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "chat", "send"]
             }
           }
@@ -1284,8 +1284,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/chat/messages?channelId=general&limit=50",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/chat/messages?channelId=general&limit=50",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "chat", "messages"],
               "query": [
                 {
@@ -1306,8 +1306,8 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:3001/api/chat/channels",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/chat/channels",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "chat", "channels"]
             }
           }
@@ -1327,8 +1327,8 @@
               "raw": "{\n    \"name\": \"project-discussion\",\n    \"description\": \"Discussion about the current project\",\n    \"type\": \"public\"\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/chat/channels",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/chat/channels",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "chat", "channels"]
             }
           }
@@ -1348,8 +1348,8 @@
               "raw": "{\n    \"channelId\": \"project-discussion\"\n}"
             },
             "url": {
-              "raw": "http://localhost:3001/api/chat/join",
-              "host": ["http://localhost:3001"],
+              "raw": "https://meta-backend-hqm9.onrender.com/api/chat/join",
+              "host": ["https://meta-backend-hqm9.onrender.com"],
               "path": ["api", "chat", "join"]
             }
           }
