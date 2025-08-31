@@ -1,0 +1,239 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
+.grunt
+
+# Bower dependency directory (https://bower.io/)
+bower_components
+
+# node-waf configuration
+.lock-wscript
+
+# Compiled binary addons (https://nodejs.org/api/addons.html)
+build/Release
+
+# Dependency directories
+jspm_packages/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Gatsby files
+.cache/
+public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
+
+# Logs
+logs
+*.log
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploaded files
+uploads/*
+!uploads/.gitkeep
+files/*
+!files/.gitkeep
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Security and sensitive files
+*.pem
+*.key
+*.cert
+*.crt
+config/keys.js
+config/prod.js
+
+# SSL certificates
+ssl/
+
+# Backup files
+*.backup
+*.bak
+*.old
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar
+
+# AWS credentials
+.aws/
+
+# Docker
+.dockerignore
+Dockerfile.prod
+
+# PM2
+ecosystem.config.js
+.pm2/
+
+# Build artifacts
+build/
+dist/
+public/build/
+
+# Testing
+test-results/
+coverage/
+
+# Documentation
+docs/build/
+
+# Sentry
+.sentryclirc
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Local configuration
+config/local.js
+config/development.js
+config/production.js
+
+# Cache directories
+.cache/
+.tmp/
+
+# Runtime configuration
+.env.runtime
+
+# Monitoring and analytics
+newrelic.js
+.newrelic_agent.log
+
+# Webpack
+.webpack/
+
+# ESLint
+.eslintcache
+
+# Stylelint
+.stylelintcache
+
+# Prisma
+prisma/dev.db
+prisma/dev.db-journal
+
+# Sequelize CLI
+.sequelizerc
+
+# Miscellaneous
+*.tgz
+*.tar.gz

@@ -1,0 +1,19 @@
+# Upload Directory
+
+This directory is for uploaded files. The actual uploaded files are ignored by git for security and storage reasons.
+
+## Directory Structure
+```
+uploads/
+├── projects/     # Project-related files
+├── tasks/        # Task attachments
+├── avatars/      # User profile pictures
+├── company/      # Company logos and documents
+└── temp/         # Temporary uploads
+```
+
+## Security Notes
+- All uploaded files are scanned for security threats
+- File types are restricted based on whitelist
+- Maximum file size limits are enforced
+- Files are served with proper headers to prevent execution

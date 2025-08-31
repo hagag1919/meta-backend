@@ -1,0 +1,1360 @@
+{
+  "info": {
+    "name": "Meta Backend API Collection",
+    "description": "Comprehensive API testing collection for Meta Software backend with 13 modules",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "projectId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "taskId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "clientId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "invoiceId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3001/health",
+          "host": ["http://localhost:3001"],
+          "path": ["health"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('userId', response.user.id);",
+                  "    pm.collectionVariables.set('authToken', response.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"password\": \"SecurePass123!\",\n    \"role\": \"administrator\",\n    \"department\": \"IT\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/auth/register",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('authToken', response.token);",
+                  "    pm.collectionVariables.set('userId', response.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"john.doe@example.com\",\n    \"password\": \"SecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/auth/login",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/auth/refresh",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "auth", "refresh"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/auth/logout",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "auth", "logout"]
+            }
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"john.doe@example.com\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/auth/forgot-password",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "auth", "forgot-password"]
+            }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"token\": \"reset_token_here\",\n    \"newPassword\": \"NewSecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/auth/reset-password",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "auth", "reset-password"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/users",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "users"]
+            }
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/users/{{userId}}",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "users", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe Updated\",\n    \"email\": \"john.doe@example.com\",\n    \"department\": \"Engineering\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/users/{{userId}}",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "users", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"currentPassword\": \"SecurePass123!\",\n    \"newPassword\": \"NewSecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/users/{{userId}}/password",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "users", "{{userId}}", "password"]
+            }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/users/{{userId}}",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "users", "{{userId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "Create Project",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('projectId', response.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Meta Software Project\",\n    \"description\": \"Main software development project\",\n    \"clientId\": \"{{clientId}}\",\n    \"status\": \"active\",\n    \"startDate\": \"2024-01-01\",\n    \"endDate\": \"2024-12-31\",\n    \"budget\": 100000\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/projects",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "projects"]
+            }
+          }
+        },
+        {
+          "name": "Get All Projects",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/projects",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "projects"]
+            }
+          }
+        },
+        {
+          "name": "Get Project by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/projects/{{projectId}}",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "projects", "{{projectId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Project",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Meta Software Project Updated\",\n    \"description\": \"Updated project description\",\n    \"status\": \"in_progress\",\n    \"budget\": 120000\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/projects/{{projectId}}",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "projects", "{{projectId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Project",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/projects/{{projectId}}",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "projects", "{{projectId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Project Members",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/projects/{{projectId}}/members",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "projects", "{{projectId}}", "members"]
+            }
+          }
+        },
+        {
+          "name": "Add Project Member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"role\": \"developer\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/projects/{{projectId}}/members",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "projects", "{{projectId}}", "members"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        {
+          "name": "Create Task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('taskId', response.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Implement User Authentication\",\n    \"description\": \"Create login and registration functionality\",\n    \"projectId\": \"{{projectId}}\",\n    \"assigneeId\": \"{{userId}}\",\n    \"priority\": \"high\",\n    \"status\": \"todo\",\n    \"dueDate\": \"2024-02-15\",\n    \"estimatedHours\": 20\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/tasks",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "tasks"]
+            }
+          }
+        },
+        {
+          "name": "Get All Tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/tasks",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "tasks"]
+            }
+          }
+        },
+        {
+          "name": "Get Task by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/tasks/{{taskId}}",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "tasks", "{{taskId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Task",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Implement User Authentication - Updated\",\n    \"status\": \"in_progress\",\n    \"progress\": 50\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/tasks/{{taskId}}",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "tasks", "{{taskId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Task",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/tasks/{{taskId}}",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "tasks", "{{taskId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Tasks by Project",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/tasks/project/{{projectId}}",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "tasks", "project", "{{projectId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Tasks by User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/tasks/user/{{userId}}",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "tasks", "user", "{{userId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Clients",
+      "item": [
+        {
+          "name": "Create Client",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('clientId', response.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Acme Corporation\",\n    \"email\": \"contact@acme.com\",\n    \"phone\": \"+1-555-0123\",\n    \"address\": \"123 Business St, City, State 12345\",\n    \"contactPerson\": \"Jane Smith\",\n    \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/clients",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "clients"]
+            }
+          }
+        },
+        {
+          "name": "Get All Clients",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/clients",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "clients"]
+            }
+          }
+        },
+        {
+          "name": "Get Client by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/clients/{{clientId}}",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "clients", "{{clientId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Client",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Acme Corporation Updated\",\n    \"email\": \"updated@acme.com\",\n    \"phone\": \"+1-555-0124\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/clients/{{clientId}}",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "clients", "{{clientId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Client",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/clients/{{clientId}}",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "clients", "{{clientId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/dashboard/stats",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "dashboard", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Get Recent Activities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/dashboard/activities",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "dashboard", "activities"]
+            }
+          }
+        },
+        {
+          "name": "Get Task Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/dashboard/tasks",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "dashboard", "tasks"]
+            }
+          }
+        },
+        {
+          "name": "Get Project Progress",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/dashboard/projects",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "dashboard", "projects"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Comments",
+      "item": [
+        {
+          "name": "Create Comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"content\": \"This is a comment on the task\",\n    \"entityType\": \"task\",\n    \"entityId\": \"{{taskId}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/comments",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "comments"]
+            }
+          }
+        },
+        {
+          "name": "Get Comments by Entity",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/comments/task/{{taskId}}",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "comments", "task", "{{taskId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Comment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"content\": \"Updated comment content\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/comments/1",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "comments", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Comment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/comments/1",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "comments", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Files",
+      "item": [
+        {
+          "name": "Upload File",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "entityType",
+                  "value": "task",
+                  "type": "text"
+                },
+                {
+                  "key": "entityId",
+                  "value": "{{taskId}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/files/upload",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "files", "upload"]
+            }
+          }
+        },
+        {
+          "name": "Get Files by Entity",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/files/task/{{taskId}}",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "files", "task", "{{taskId}}"]
+            }
+          }
+        },
+        {
+          "name": "Download File",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/files/download/1",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "files", "download", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete File",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/files/1",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "files", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Time Tracking",
+      "item": [
+        {
+          "name": "Start Time Entry",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"taskId\": \"{{taskId}}\",\n    \"description\": \"Working on user authentication\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/time/start",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "time", "start"]
+            }
+          }
+        },
+        {
+          "name": "Stop Time Entry",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"timeEntryId\": \"1\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/time/stop",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "time", "stop"]
+            }
+          }
+        },
+        {
+          "name": "Get Time Entries",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/time/entries",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "time", "entries"]
+            }
+          }
+        },
+        {
+          "name": "Get Time Entries by Task",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/time/task/{{taskId}}",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "time", "task", "{{taskId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Time Entry",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"description\": \"Updated description\",\n    \"duration\": 3600\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/time/1",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "time", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Time Entry",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/time/1",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "time", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Invoices",
+      "item": [
+        {
+          "name": "Create Invoice",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('invoiceId', response.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"clientId\": \"{{clientId}}\",\n    \"projectId\": \"{{projectId}}\",\n    \"invoiceNumber\": \"INV-001\",\n    \"amount\": 5000,\n    \"taxAmount\": 500,\n    \"dueDate\": \"2024-02-28\",\n    \"items\": [\n        {\n            \"description\": \"Development services\",\n            \"quantity\": 100,\n            \"rate\": 50,\n            \"amount\": 5000\n        }\n    ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/invoices",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "invoices"]
+            }
+          }
+        },
+        {
+          "name": "Get All Invoices",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/invoices",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "invoices"]
+            }
+          }
+        },
+        {
+          "name": "Get Invoice by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/invoices/{{invoiceId}}",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "invoices", "{{invoiceId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Invoice",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"amount\": 5500,\n    \"taxAmount\": 550,\n    \"status\": \"sent\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/invoices/{{invoiceId}}",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "invoices", "{{invoiceId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Invoice",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/invoices/{{invoiceId}}",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "invoices", "{{invoiceId}}"]
+            }
+          }
+        },
+        {
+          "name": "Generate Invoice PDF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/invoices/{{invoiceId}}/pdf",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "invoices", "{{invoiceId}}", "pdf"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Get Time Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/reports/time?startDate=2024-01-01&endDate=2024-01-31",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "reports", "time"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-01-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Project Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/reports/projects?status=active",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "reports", "projects"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "active"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User Performance Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/reports/users/{{userId}}?startDate=2024-01-01&endDate=2024-01-31",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "reports", "users", "{{userId}}"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-01-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Financial Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/reports/financial?year=2024",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "reports", "financial"],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2024"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Export Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"type\": \"time\",\n    \"format\": \"pdf\",\n    \"startDate\": \"2024-01-01\",\n    \"endDate\": \"2024-01-31\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/reports/export",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "reports", "export"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "item": [
+        {
+          "name": "Get All Settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/settings",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "settings"]
+            }
+          }
+        },
+        {
+          "name": "Get Setting by Key",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/settings/timezone",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "settings", "timezone"]
+            }
+          }
+        },
+        {
+          "name": "Update Setting",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"value\": \"America/New_York\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/settings/timezone",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "settings", "timezone"]
+            }
+          }
+        },
+        {
+          "name": "Create Setting",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"key\": \"notification_enabled\",\n    \"value\": \"true\",\n    \"type\": \"boolean\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/settings",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "settings"]
+            }
+          }
+        },
+        {
+          "name": "Delete Setting",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/settings/notification_enabled",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "settings", "notification_enabled"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chat",
+      "item": [
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"message\": \"Hello team!\",\n    \"channelId\": \"general\",\n    \"type\": \"text\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/chat/send",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "chat", "send"]
+            }
+          }
+        },
+        {
+          "name": "Get Messages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/chat/messages?channelId=general&limit=50",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "chat", "messages"],
+              "query": [
+                {
+                  "key": "channelId",
+                  "value": "general"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Channels",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/api/chat/channels",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "chat", "channels"]
+            }
+          }
+        },
+        {
+          "name": "Create Channel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"project-discussion\",\n    \"description\": \"Discussion about the current project\",\n    \"type\": \"public\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/chat/channels",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "chat", "channels"]
+            }
+          }
+        },
+        {
+          "name": "Join Channel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"channelId\": \"project-discussion\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3001/api/chat/join",
+              "host": ["http://localhost:3001"],
+              "path": ["api", "chat", "join"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
