@@ -10,20 +10,13 @@ import RegisterPage from './pages/auth/RegisterPage';
 // Dashboard pages
 import DashboardPage from './pages/dashboard/DashboardPage';
 
-// Placeholder components for other pages
-const ProjectsPage = () => (
-  <div className="p-6">
-    <h1 className="text-2xl font-bold">Projects</h1>
-    <p>Projects management coming soon...</p>
-  </div>
-);
+// Project pages
+import ProjectsPage from './pages/projects/ProjectsPage';
 
-const TasksPage = () => (
-  <div className="p-6">
-    <h1 className="text-2xl font-bold">Tasks</h1>
-    <p>Task management coming soon...</p>
-  </div>
-);
+// Task pages
+import TasksPage from './pages/tasks/TasksPage';
+
+// Placeholder components for other pages
 
 const UsersPage = () => (
   <div className="p-6">
