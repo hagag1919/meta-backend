@@ -88,8 +88,6 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('combined'));
 }
 
-app.use(sanitizeInputs);
-
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
   setHeaders: (res, path) => {
     res.setHeader('Content-Type', 'application/octet-stream');
@@ -107,6 +105,10 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/auth', require('./routes/auth'));
+
+// Sanitize all other inputs
+app.use(sanitizeInputs);
+
 app.use('/api/users', authenticateToken, require('./routes/users'));
 app.use('/api/projects', authenticateToken, require('./routes/projects'));
 app.use('/api/tasks', authenticateToken, require('./routes/tasks'));

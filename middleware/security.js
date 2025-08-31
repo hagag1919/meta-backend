@@ -31,9 +31,9 @@ const XSS_PATTERNS = [
 
 // Command Injection patterns
 const COMMAND_INJECTION_PATTERNS = [
-  /[;&|`$(){}[\]\\]/g,
-  /\b(rm|del|format|fdisk|mkfs)\b/gi,
-  /\b(wget|curl|nc|netcat|telnet|ssh)\b/gi
+  // /[;&|`$(){}[\]\\]/g, // This pattern is too broad and blocks common password characters.
+  /\b(rm|del|format|fdisk|mkfs|shutdown|reboot)\b/gi,
+  /\b(wget|curl|nc|netcat|telnet|ssh|bash|sh|zsh)\b/gi
 ];
 
 // Path Traversal patterns
