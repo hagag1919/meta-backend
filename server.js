@@ -65,7 +65,8 @@ app.use(cors({
       'http://localhost:3001',
       'https://metasoftware.com',
       'http://localhost:5173',
-      'https://app.metasoftware.com'
+      'https://app.metasoftware.com',
+      'https://meta-frontend.onrender.com'
     ];
     
     // Allow requests with no origin (like mobile apps or curl requests)
