@@ -62,6 +62,7 @@ app.use(cors({
       process.env.FRONTEND_URL || 'http://localhost:3000',
       'http://localhost:3001',
       'https://metasoftware.com',
+      'http://localhost:5173',
       'https://app.metasoftware.com'
     ];
     
