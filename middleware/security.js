@@ -278,7 +278,7 @@ const createRateLimit = (windowMs, max, message = 'Too many requests') => {
 // Different rate limits for different endpoints
 const authRateLimit = createRateLimit(
   15 * 60 * 1000, // 15 minutes
-  5, // limit each IP to 5 requests per windowMs
+  50, // limit each IP to 50 requests per windowMs (increased from 5 for development)
   'Too many authentication attempts'
 );
 

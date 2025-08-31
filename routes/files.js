@@ -16,14 +16,8 @@ if (!fs.existsSync(uploadsDir)) {
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const { project_id, task_id } = req.body;
+    // Use a temporary directory first, we'll organize later
     let uploadPath = uploadsDir;
-    
-    if (project_id) {
-      uploadPath = path.join(uploadsDir, 'projects', project_id);
-    } else if (task_id) {
-      uploadPath = path.join(uploadsDir, 'tasks', task_id);
-    }
     
     // Create directory if it doesn't exist
     if (!fs.existsSync(uploadPath)) {
@@ -203,17 +197,47 @@ router.get('/', validatePagination, async (req, res, next) => {
 // @route   POST /api/files/upload
 // @desc    Upload files
 // @access  Private
-router.post('/upload', upload.array('files', 5), async (req, res, next) => {
+router.post('/upload', (req, res, next) => {
+  const uploadHandler = upload.array('files', 5);
+  
+  uploadHandler(req, res, (err) => {
+    if (err) {
+      console.log('❌ Multer error:', err.message);
+      
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'File too large. Maximum size is 10MB.' });
+      }
+      if (err.code === 'LIMIT_FILE_COUNT') {
+        return res.status(400).json({ error: 'Too many files. Maximum is 5 files.' });
+      }
+      if (err.message === 'File type not allowed') {
+        return res.status(400).json({ error: 'File type not supported.' });
+      }
+      
+      return res.status(400).json({ error: err.message });
+    }
+    
+    next();
+  });
+}, async (req, res, next) => {
   try {
+    console.log('📁 File upload request received');
+    console.log('📋 Request body:', req.body);
+    console.log('📎 Files:', req.files ? req.files.length : 0);
+    
     const { project_id, task_id, is_public = false } = req.body;
 
     if (!project_id && !task_id) {
+      console.log('❌ Missing project_id or task_id');
       return res.status(400).json({ error: 'project_id or task_id is required' });
     }
 
     if (!req.files || req.files.length === 0) {
+      console.log('❌ No files in request');
       return res.status(400).json({ error: 'No files uploaded' });
     }
+
+    console.log('✅ Basic validation passed, checking permissions...');
 
     // Check access permissions
     let accessQuery;

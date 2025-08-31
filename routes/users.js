@@ -7,8 +7,8 @@ const { body } = require('express-validator');
 
 // @route   GET /api/users
 // @desc    Get all users (with pagination and filters)
-// @access  Private (Admin only)
-router.get('/', requireRole(['administrator']), validatePagination, async (req, res, next) => {
+// @access  Private (Admin and Developer)
+router.get('/', requireRole(['administrator', 'developer']), validatePagination, async (req, res, next) => {
   try {
     const {
       page = 1,

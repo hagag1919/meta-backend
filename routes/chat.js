@@ -1,301 +1,187 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { validatePagination } = require('../middleware/validation');
-const { body } = require('express-validator');
+const { validateUUID } = require('../middleware/validation');
 
-const activeConnections = new Map();
-
-
-router.get('/conversations', validatePagination, async (req, res, next) => {
+// @route   GET /api/chat/conversations
+// @desc    Get user's chat conversations (chat rooms)
+// @access  Private
+router.get('/conversations', async (req, res, next) => {
   try {
-    const { page = 1, limit = 20 } = req.query;
-    const offset = (page - 1) * limit;
+    const userId = req.user.id;
+    console.log('Chat conversations request from user:', userId);
 
-    // Get conversations where user is a participant
+    // Get chat rooms where the user is a participant
     const conversationsQuery = `
-      SELECT DISTINCT
-        c.id, c.name, c.type, c.created_at, c.updated_at,
-        c.created_by,
-        creator.first_name || ' ' || creator.last_name as created_by_name,
+      SELECT 
+        cr.id,
+        cr.name,
+        cr.is_group_chat,
+        cr.project_id,
+        cr.created_at,
+        p.name as project_name,
         (
-          SELECT COUNT(*) FROM chat_messages cm 
-          WHERE cm.conversation_id = c.id 
-          AND cm.created_at > COALESCE(cp.last_read_at, '1970-01-01'::timestamp)
-        ) as unread_count,
-        (
-          SELECT cm.message_text FROM chat_messages cm 
-          WHERE cm.conversation_id = c.id 
-          ORDER BY cm.created_at DESC LIMIT 1
+          SELECT cm.content 
+          FROM chat_messages cm 
+          WHERE cm.chat_room_id = cr.id 
+          ORDER BY cm.created_at DESC 
+          LIMIT 1
         ) as last_message,
         (
-          SELECT cm.created_at FROM chat_messages cm 
-          WHERE cm.conversation_id = c.id 
-          ORDER BY cm.created_at DESC LIMIT 1
+          SELECT cm.created_at 
+          FROM chat_messages cm 
+          WHERE cm.chat_room_id = cr.id 
+          ORDER BY cm.created_at DESC 
+          LIMIT 1
         ) as last_message_at,
         (
-          SELECT sender.first_name || ' ' || sender.last_name 
+          SELECT COUNT(*) 
           FROM chat_messages cm 
-          JOIN users sender ON cm.sender_id = sender.id
-          WHERE cm.conversation_id = c.id 
-          ORDER BY cm.created_at DESC LIMIT 1
-        ) as last_message_sender
-      FROM chat_conversations c
-      JOIN chat_participants cp ON c.id = cp.conversation_id
-      JOIN users creator ON c.created_by = creator.id
-      WHERE cp.user_id = $1 AND cp.is_active = true
-      ORDER BY 
-        COALESCE(
-          (SELECT MAX(cm.created_at) FROM chat_messages cm WHERE cm.conversation_id = c.id),
-          c.created_at
-        ) DESC
-      LIMIT $2 OFFSET $3
+          WHERE cm.chat_room_id = cr.id 
+          AND cm.created_at > COALESCE(cp.joined_at, cr.created_at)
+        ) as message_count
+      FROM chat_rooms cr
+      INNER JOIN chat_participants cp ON cr.id = cp.chat_room_id
+      LEFT JOIN projects p ON cr.project_id = p.id
+      WHERE cp.user_id = $1 AND cp.left_at IS NULL
+      ORDER BY last_message_at DESC NULLS LAST, cr.created_at DESC
     `;
 
-    const result = await db.query(conversationsQuery, [req.user.id, limit, offset]);
-
-    // Get participants for each conversation
-    const conversationsWithParticipants = await Promise.all(
-      result.rows.map(async (conversation) => {
-        const participantsQuery = `
-          SELECT 
-            u.id, u.first_name, u.last_name, u.email, u.role,
-            cp.joined_at, cp.last_read_at
-          FROM chat_participants cp
-          JOIN users u ON cp.user_id = u.id
-          WHERE cp.conversation_id = $1 AND cp.is_active = true
-          ORDER BY u.first_name, u.last_name
-        `;
-
-        const participantsResult = await db.query(participantsQuery, [conversation.id]);
-        
-        return {
-          ...conversation,
-          participants: participantsResult.rows
-        };
-      })
-    );
-
-    // Get total count
-    const countQuery = `
-      SELECT COUNT(DISTINCT c.id) FROM chat_conversations c
-      JOIN chat_participants cp ON c.id = cp.conversation_id
-      WHERE cp.user_id = $1 AND cp.is_active = true
-    `;
-    const countResult = await db.query(countQuery, [req.user.id]);
-    const totalConversations = parseInt(countResult.rows[0].count);
-
-    const totalPages = Math.ceil(totalConversations / limit);
-
-    res.json({
-      conversations: conversationsWithParticipants,
-      pagination: {
-        current_page: parseInt(page),
-        total_pages: totalPages,
-        total_conversations: totalConversations,
-        has_next: page < totalPages,
-        has_prev: page > 1
-      }
-    });
+    console.log('Executing conversations query for user:', userId);
+    const result = await db.query(conversationsQuery, [userId]);
+    console.log('Query result:', result.rows.length, 'conversations found');
+    
+    res.json({ conversations: result.rows });
   } catch (error) {
+    console.error('Error in chat conversations:', error);
     next(error);
   }
 });
 
 // @route   POST /api/chat/conversations
-// @desc    Create new conversation
+// @desc    Create new chat conversation (chat room)
 // @access  Private
-router.post('/conversations', [
-  body('name').optional().trim().isLength({ min: 1, max: 255 }),
-  body('type').isIn(['direct', 'group', 'project']),
-  body('participant_ids').isArray().isLength({ min: 1 }),
-  body('project_id').optional().isUUID()
-], async (req, res, next) => {
+router.post('/conversations', async (req, res, next) => {
   try {
-    const { name, type, participant_ids, project_id } = req.body;
+    const { name, is_group_chat = false, project_id, participant_ids = [] } = req.body;
+    const userId = req.user.id;
 
-    // Validate participants exist and are active
-    const participantCheckQuery = `
-      SELECT id FROM users 
-      WHERE id = ANY($1) AND is_active = true
-    `;
-    const participantCheckResult = await db.query(participantCheckQuery, [participant_ids]);
-    
-    if (participantCheckResult.rows.length !== participant_ids.length) {
-      return res.status(400).json({ error: 'One or more participants not found or inactive' });
+    // Validate required fields
+    if (is_group_chat && !name) {
+      return res.status(400).json({ error: 'Name is required for group chats' });
     }
 
-    // For direct messages, check if conversation already exists
-    if (type === 'direct' && participant_ids.length === 1) {
-      const existingQuery = `
-        SELECT c.id FROM chat_conversations c
-        JOIN chat_participants cp1 ON c.id = cp1.conversation_id
-        JOIN chat_participants cp2 ON c.id = cp2.conversation_id
-        WHERE c.type = 'direct'
-        AND cp1.user_id = $1 AND cp1.is_active = true
-        AND cp2.user_id = $2 AND cp2.is_active = true
-        AND (
-          SELECT COUNT(*) FROM chat_participants cp 
-          WHERE cp.conversation_id = c.id AND cp.is_active = true
-        ) = 2
-      `;
-
-      const existingResult = await db.query(existingQuery, [req.user.id, participant_ids[0]]);
-      if (existingResult.rows.length > 0) {
-        return res.status(400).json({ 
-          error: 'Direct conversation already exists',
-          conversation_id: existingResult.rows[0].id
-        });
-      }
+    // For direct messages, ensure exactly 2 participants
+    if (!is_group_chat && participant_ids.length !== 1) {
+      return res.status(400).json({ error: 'Direct messages require exactly one other participant' });
     }
 
-    // For project conversations, validate project access
-    if (type === 'project' && project_id) {
-      const projectAccessQuery = `
-        SELECT p.id FROM projects p
-        LEFT JOIN project_team pt ON p.id = pt.project_id
-        WHERE p.id = $1 AND p.is_active = true
-        AND (p.project_manager_id = $2 OR pt.user_id = $2)
-      `;
-
-      const projectAccessResult = await db.query(projectAccessQuery, [project_id, req.user.id]);
-      if (projectAccessResult.rows.length === 0) {
-        return res.status(403).json({ error: 'Access denied to project' });
-      }
-    }
-
-    // Generate conversation name if not provided
-    let conversationName = name;
-    if (!conversationName) {
-      if (type === 'direct') {
-        const otherUserQuery = 'SELECT first_name, last_name FROM users WHERE id = $1';
-        const otherUserResult = await db.query(otherUserQuery, [participant_ids[0]]);
-        if (otherUserResult.rows.length > 0) {
-          const otherUser = otherUserResult.rows[0];
-          conversationName = `${req.user.first_name} ${req.user.last_name} & ${otherUser.first_name} ${otherUser.last_name}`;
-        }
-      } else if (type === 'project' && project_id) {
-        const projectQuery = 'SELECT name FROM projects WHERE id = $1';
-        const projectResult = await db.query(projectQuery, [project_id]);
-        if (projectResult.rows.length > 0) {
-          conversationName = `${projectResult.rows[0].name} - Team Chat`;
-        }
-      } else {
-        conversationName = 'Group Chat';
-      }
-    }
-
-    // Create conversation
-    const createQuery = `
-      INSERT INTO chat_conversations (name, type, created_by, project_id)
+    // Create chat room
+    const createRoomQuery = `
+      INSERT INTO chat_rooms (name, is_group_chat, project_id, created_by)
       VALUES ($1, $2, $3, $4)
-      RETURNING id, name, type, created_at
+      RETURNING id, name, is_group_chat, project_id, created_at
     `;
 
-    const conversationResult = await db.query(createQuery, [
-      conversationName, type, req.user.id, project_id
+    const roomResult = await db.query(createRoomQuery, [
+      name || null,
+      is_group_chat,
+      project_id || null,
+      userId
     ]);
 
-    const conversation = conversationResult.rows[0];
+    const chatRoom = roomResult.rows[0];
 
-    // Add creator as participant
+        // Add creator as participant
     await db.query(
-      'INSERT INTO chat_participants (conversation_id, user_id, joined_by) VALUES ($1, $2, $3)',
-      [conversation.id, req.user.id, req.user.id]
+      'INSERT INTO chat_participants (chat_room_id, user_id) VALUES ($1, $2)',
+      [chatRoom.id, userId]
     );
 
     // Add other participants
-    for (const participantId of participant_ids) {
-      if (participantId !== req.user.id) {
-        await db.query(
-          'INSERT INTO chat_participants (conversation_id, user_id, joined_by) VALUES ($1, $2, $3)',
-          [conversation.id, participantId, req.user.id]
-        );
-      }
+    if (is_group_chat && participant_ids.length > 0) {
+      const participantValues = participant_ids.map(pId => `(${chatRoom.id}, ${pId})`).join(',');
+      await db.query(`INSERT INTO chat_participants (chat_room_id, user_id) VALUES ${participantValues}`);
+    } else if (!is_group_chat) {
+      // Add the other single participant for direct message
+      await db.query(
+        'INSERT INTO chat_participants (chat_room_id, user_id) VALUES ($1, $2)',
+        [chatRoom.id, participant_ids[0]]
+      );
     }
 
-    // Log activity
-    await db.query(
-      'INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details) VALUES ($1, $2, $3, $4, $5)',
-      [req.user.id, 'conversation_created', 'chat_conversation', conversation.id, {
-        type,
-        participant_count: participant_ids.length + 1,
-        project_id
-      }]
-    );
+    // Fetch the newly created chat room with all necessary details
+    const newConversationQuery = `
+      SELECT 
+        cr.id,
+        cr.name,
+        cr.is_group_chat,
+        cr.project_id,
+        cr.created_at,
+        p.name as project_name,
+        NULL as last_message,
+        NULL as last_message_at,
+        0 as message_count
+      FROM chat_rooms cr
+      LEFT JOIN projects p ON cr.project_id = p.id
+      WHERE cr.id = $1
+    `;
+    const newConversationResult = await db.query(newConversationQuery, [chatRoom.id]);
 
-    res.status(201).json({
-      message: 'Conversation created successfully',
-      conversation
-    });
+    res.status(201).json(newConversationResult.rows[0]);
   } catch (error) {
+    console.error('Error creating conversation:', error);
     next(error);
   }
 });
 
 // @route   GET /api/chat/conversations/:id/messages
-// @desc    Get messages from conversation
+// @desc    Get messages from a conversation
 // @access  Private
-router.get('/conversations/:id/messages', validatePagination, async (req, res, next) => {
+router.get('/conversations/:id/messages', validateUUID, async (req, res, next) => {
   try {
     const { id } = req.params;
     const { page = 1, limit = 50 } = req.query;
+    const userId = req.user.id;
     const offset = (page - 1) * limit;
 
-    // Check if user is participant
-    const participantQuery = `
-      SELECT cp.id FROM chat_participants cp
-      WHERE cp.conversation_id = $1 AND cp.user_id = $2 AND cp.is_active = true
-    `;
+    // Check if user is participant in this chat room
+    const participantCheck = await db.query(
+      'SELECT 1 FROM chat_participants WHERE chat_room_id = $1 AND user_id = $2 AND left_at IS NULL',
+      [id, userId]
+    );
 
-    const participantResult = await db.query(participantQuery, [id, req.user.id]);
-    if (participantResult.rows.length === 0) {
-      return res.status(403).json({ error: 'Access denied to conversation' });
+    if (participantCheck.rows.length === 0) {
+      return res.status(403).json({ error: 'Access denied to this conversation' });
     }
 
     // Get messages
     const messagesQuery = `
       SELECT 
-        cm.id, cm.message_text, cm.message_type, cm.created_at, cm.updated_at,
-        cm.is_edited, cm.reply_to_id,
-        u.id as sender_id, u.first_name || ' ' || u.last_name as sender_name,
-        u.email as sender_email,
-        reply_msg.message_text as reply_to_text,
-        reply_sender.first_name || ' ' || reply_sender.last_name as reply_to_sender
+        cm.id,
+        cm.content,
+        cm.message_type,
+        cm.created_at,
+        cm.updated_at,
+        cm.is_edited,
+        u.first_name || ' ' || u.last_name as sender_name,
+        u.id as sender_id,
+        f.filename,
+        f.original_filename
       FROM chat_messages cm
-      JOIN users u ON cm.sender_id = u.id
-      LEFT JOIN chat_messages reply_msg ON cm.reply_to_id = reply_msg.id
-      LEFT JOIN users reply_sender ON reply_msg.sender_id = reply_sender.id
-      WHERE cm.conversation_id = $1
+      INNER JOIN users u ON cm.sender_id = u.id
+      LEFT JOIN files f ON cm.file_id = f.id
+      WHERE cm.chat_room_id = $1
       ORDER BY cm.created_at DESC
       LIMIT $2 OFFSET $3
     `;
 
-    const messagesResult = await db.query(messagesQuery, [id, limit, offset]);
+    const result = await db.query(messagesQuery, [id, limit, offset]);
+    
+    // Reverse to show oldest first
+    const messages = result.rows.reverse();
 
-    // Update last read timestamp
-    await db.query(
-      'UPDATE chat_participants SET last_read_at = CURRENT_TIMESTAMP WHERE conversation_id = $1 AND user_id = $2',
-      [id, req.user.id]
-    );
-
-    // Get total count
-    const countQuery = 'SELECT COUNT(*) FROM chat_messages WHERE conversation_id = $1';
-    const countResult = await db.query(countQuery, [id]);
-    const totalMessages = parseInt(countResult.rows[0].count);
-
-    const totalPages = Math.ceil(totalMessages / limit);
-
-    res.json({
-      messages: messagesResult.rows.reverse(), // Reverse to show oldest first
-      pagination: {
-        current_page: parseInt(page),
-        total_pages: totalPages,
-        total_messages: totalMessages,
-        has_next: page < totalPages,
-        has_prev: page > 1
-      }
-    });
+    res.json({ messages });
   } catch (error) {
     next(error);
   }
@@ -304,284 +190,104 @@ router.get('/conversations/:id/messages', validatePagination, async (req, res, n
 // @route   POST /api/chat/conversations/:id/messages
 // @desc    Send message to conversation
 // @access  Private
-router.post('/conversations/:id/messages', [
-  body('message_text').trim().isLength({ min: 1, max: 2000 }),
-  body('message_type').optional().isIn(['text', 'file', 'image']),
-  body('reply_to_id').optional().isUUID()
-], async (req, res, next) => {
+router.post('/conversations/:id/messages', validateUUID, async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { message_text, message_type = 'text', reply_to_id } = req.body;
+    const { content, message_type = 'text' } = req.body;
+    const userId = req.user.id;
 
-    // Check if user is participant
-    const participantQuery = `
-      SELECT cp.id FROM chat_participants cp
-      WHERE cp.conversation_id = $1 AND cp.user_id = $2 AND cp.is_active = true
-    `;
-
-    const participantResult = await db.query(participantQuery, [id, req.user.id]);
-    if (participantResult.rows.length === 0) {
-      return res.status(403).json({ error: 'Access denied to conversation' });
+    // Validate content
+    if (!content || content.trim().length === 0) {
+      return res.status(400).json({ error: 'Message content is required' });
     }
 
-    // Validate reply_to message if provided
-    if (reply_to_id) {
-      const replyQuery = 'SELECT id FROM chat_messages WHERE id = $1 AND conversation_id = $2';
-      const replyResult = await db.query(replyQuery, [reply_to_id, id]);
-      if (replyResult.rows.length === 0) {
-        return res.status(400).json({ error: 'Reply message not found in this conversation' });
-      }
-    }
-
-    // Create message
-    const messageQuery = `
-      INSERT INTO chat_messages (conversation_id, sender_id, message_text, message_type, reply_to_id)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING id, message_text, message_type, created_at
-    `;
-
-    const messageResult = await db.query(messageQuery, [
-      id, req.user.id, message_text, message_type, reply_to_id
-    ]);
-
-    const message = messageResult.rows[0];
-
-    // Update conversation timestamp
-    await db.query(
-      'UPDATE chat_conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = $1',
-      [id]
+    // Check if user is participant in this chat room
+    const participantCheck = await db.query(
+      'SELECT 1 FROM chat_participants WHERE chat_room_id = $1 AND user_id = $2 AND left_at IS NULL',
+      [id, userId]
     );
 
-    // Emit message to active connections (Socket.IO integration)
-    const io = req.app.get('io');
-    if (io) {
-      // Get all participants for this conversation
-      const participantsQuery = 'SELECT user_id FROM chat_participants WHERE conversation_id = $1 AND is_active = true';
-      const participantsResult = await db.query(participantsQuery, [id]);
-      
-      const messageData = {
-        ...message,
-        sender_id: req.user.id,
-        sender_name: `${req.user.first_name} ${req.user.last_name}`,
-        conversation_id: id
-      };
-
-      // Emit to all participants
-      participantsResult.rows.forEach(participant => {
-        io.to(`user_${participant.user_id}`).emit('new_message', messageData);
-      });
+    if (participantCheck.rows.length === 0) {
+      return res.status(403).json({ error: 'Access denied to this conversation' });
     }
 
-    res.status(201).json({
-      message: 'Message sent successfully',
-      chat_message: {
-        ...message,
-        sender_id: req.user.id,
-        sender_name: `${req.user.first_name} ${req.user.last_name}`
-      }
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-// @route   PUT /api/chat/messages/:id
-// @desc    Edit message
-// @access  Private
-router.put('/messages/:id', [
-  body('message_text').trim().isLength({ min: 1, max: 2000 })
-], async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { message_text } = req.body;
-
-    // Check if message exists and user is sender
-    const messageQuery = `
-      SELECT cm.*, c.id as conversation_id FROM chat_messages cm
-      JOIN chat_conversations c ON cm.conversation_id = c.id
-      WHERE cm.id = $1 AND cm.sender_id = $2
+    // Insert message
+    const insertMessageQuery = `
+      INSERT INTO chat_messages (chat_room_id, sender_id, content, message_type)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id, content, message_type, created_at
     `;
 
-    const messageResult = await db.query(messageQuery, [id, req.user.id]);
-    if (messageResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Message not found or access denied' });
-    }
+    const result = await db.query(insertMessageQuery, [id, userId, content.trim(), message_type]);
+    const message = result.rows[0];
 
-    const message = messageResult.rows[0];
-
-    // Check if message is recent (can only edit within 15 minutes)
-    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
-    if (new Date(message.created_at) < fifteenMinutesAgo) {
-      return res.status(400).json({ error: 'Cannot edit messages older than 15 minutes' });
-    }
-
-    // Update message
-    const updateQuery = `
-      UPDATE chat_messages 
-      SET message_text = $1, is_edited = true, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $2
-      RETURNING id, message_text, is_edited, updated_at
-    `;
-
-    const updateResult = await db.query(updateQuery, [message_text, id]);
-
-    // Emit update to active connections
-    const io = req.app.get('io');
-    if (io) {
-      const participantsQuery = 'SELECT user_id FROM chat_participants WHERE conversation_id = $1 AND is_active = true';
-      const participantsResult = await db.query(participantsQuery, [message.conversation_id]);
-      
-      const updatedMessage = {
-        ...updateResult.rows[0],
-        sender_id: req.user.id,
-        sender_name: `${req.user.first_name} ${req.user.last_name}`,
-        conversation_id: message.conversation_id
-      };
-
-      participantsResult.rows.forEach(participant => {
-        io.to(`user_${participant.user_id}`).emit('message_updated', updatedMessage);
-      });
-    }
-
-    res.json({
-      message: 'Message updated successfully',
-      chat_message: updateResult.rows[0]
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-// @route   DELETE /api/chat/messages/:id
-// @desc    Delete message
-// @access  Private
-router.delete('/messages/:id', async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    // Check if message exists and user is sender
-    const messageQuery = `
-      SELECT cm.*, c.id as conversation_id FROM chat_messages cm
-      JOIN chat_conversations c ON cm.conversation_id = c.id
-      WHERE cm.id = $1 AND cm.sender_id = $2
-    `;
-
-    const messageResult = await db.query(messageQuery, [id, req.user.id]);
-    if (messageResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Message not found or access denied' });
-    }
-
-    const message = messageResult.rows[0];
-
-    // Soft delete message
-    const deleteQuery = `
-      UPDATE chat_messages 
-      SET message_text = '[Message deleted]', is_deleted = true, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
-      RETURNING id, message_text, is_deleted, updated_at
-    `;
-
-    const deleteResult = await db.query(deleteQuery, [id]);
-
-    // Emit deletion to active connections
-    const io = req.app.get('io');
-    if (io) {
-      const participantsQuery = 'SELECT user_id FROM chat_participants WHERE conversation_id = $1 AND is_active = true';
-      const participantsResult = await db.query(participantsQuery, [message.conversation_id]);
-      
-      const deletedMessage = {
-        ...deleteResult.rows[0],
-        sender_id: req.user.id,
-        conversation_id: message.conversation_id
-      };
-
-      participantsResult.rows.forEach(participant => {
-        io.to(`user_${participant.user_id}`).emit('message_deleted', deletedMessage);
-      });
-    }
-
-    res.json({
-      message: 'Message deleted successfully'
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-// @route   POST /api/chat/conversations/:id/participants
-// @desc    Add participants to conversation
-// @access  Private
-router.post('/conversations/:id/participants', [
-  body('user_ids').isArray().isLength({ min: 1 })
-], async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { user_ids } = req.body;
-
-    // Check if user is participant and conversation allows adding members
-    const conversationQuery = `
-      SELECT c.*, cp.user_id as participant_id FROM chat_conversations c
-      JOIN chat_participants cp ON c.id = cp.conversation_id
-      WHERE c.id = $1 AND cp.user_id = $2 AND cp.is_active = true
-    `;
-
-    const conversationResult = await db.query(conversationQuery, [id, req.user.id]);
-    if (conversationResult.rows.length === 0) {
-      return res.status(403).json({ error: 'Access denied to conversation' });
-    }
-
-    const conversation = conversationResult.rows[0];
-
-    // Don't allow adding to direct conversations
-    if (conversation.type === 'direct') {
-      return res.status(400).json({ error: 'Cannot add participants to direct conversations' });
-    }
-
-    // Validate users exist and are active
-    const userCheckQuery = `
-      SELECT id, first_name, last_name FROM users 
-      WHERE id = ANY($1) AND is_active = true
-    `;
-    const userCheckResult = await db.query(userCheckQuery, [user_ids]);
+    // Get sender info for response
+    const senderQuery = 'SELECT first_name || \' \' || last_name as sender_name FROM users WHERE id = $1';
+    const senderResult = await db.query(senderQuery, [userId]);
     
-    if (userCheckResult.rows.length !== user_ids.length) {
-      return res.status(400).json({ error: 'One or more users not found or inactive' });
+    message.sender_name = senderResult.rows[0]?.sender_name;
+    message.sender_id = userId;
+
+    res.status(201).json({ message });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @route   POST /api/chat/add-to-general
+// @desc    Add user(s) to general chat room (Admin only)
+// @access  Private (Admin)
+router.post('/add-to-general', async (req, res, next) => {
+  try {
+    // Check if user is admin
+    if (req.user.role !== 'administrator') {
+      return res.status(403).json({ error: 'Only administrators can add users to general chat' });
     }
 
-    const addedParticipants = [];
+    const { user_ids } = req.body;
+    
+    // If no user_ids provided, add all active users
+    let usersToAdd = [];
+    if (!user_ids || user_ids.length === 0) {
+      const allUsersResult = await db.query('SELECT id FROM users WHERE is_active = true');
+      usersToAdd = allUsersResult.rows.map(row => row.id);
+    } else {
+      usersToAdd = user_ids;
+    }
 
-    // Add participants
-    for (const userId of user_ids) {
-      // Check if already participant
-      const existingQuery = `
-        SELECT id FROM chat_participants 
-        WHERE conversation_id = $1 AND user_id = $2 AND is_active = true
-      `;
-      const existingResult = await db.query(existingQuery, [id, userId]);
+    // Find the general chat room
+    const generalRoomQuery = `
+      SELECT id FROM chat_rooms 
+      WHERE project_id IS NULL 
+      AND (LOWER(name) LIKE '%general%' OR LOWER(name) LIKE '%discussion%')
+      LIMIT 1
+    `;
+    const generalRoomResult = await db.query(generalRoomQuery);
+    
+    if (generalRoomResult.rows.length === 0) {
+      return res.status(404).json({ error: 'General chat room not found' });
+    }
 
-      if (existingResult.rows.length === 0) {
+    const generalRoomId = generalRoomResult.rows[0].id;
+    let addedCount = 0;
+
+    // Add each user to the general chat room
+    for (const userId of usersToAdd) {
+      try {
         await db.query(
-          'INSERT INTO chat_participants (conversation_id, user_id, joined_by) VALUES ($1, $2, $3)',
-          [id, userId, req.user.id]
+          'INSERT INTO chat_participants (chat_room_id, user_id) VALUES ($1, $2) ON CONFLICT (chat_room_id, user_id) DO NOTHING',
+          [generalRoomId, userId]
         );
-
-        const user = userCheckResult.rows.find(u => u.id === userId);
-        addedParticipants.push(user);
+        addedCount++;
+      } catch (err) {
+        console.error(`Failed to add user ${userId} to general chat:`, err);
       }
     }
 
-    // Log activity
-    await db.query(
-      'INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details) VALUES ($1, $2, $3, $4, $5)',
-      [req.user.id, 'participants_added', 'chat_conversation', id, {
-        added_count: addedParticipants.length,
-        participant_names: addedParticipants.map(p => `${p.first_name} ${p.last_name}`)
-      }]
-    );
-
-    res.json({
-      message: 'Participants added successfully',
-      added_participants: addedParticipants
+    res.status(200).json({ 
+      message: `Successfully ensured ${addedCount} users have access to general chat`,
+      added_count: addedCount,
+      general_room_id: generalRoomId
     });
   } catch (error) {
     next(error);

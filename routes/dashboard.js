@@ -232,7 +232,7 @@ router.get('/active-projects', async (req, res, next) => {
     if (userRole === 'administrator') {
       projectsQuery = `
         SELECT 
-          p.id, p.name, p.status, p.progress_percentage, p.due_date,
+          p.id, p.name, p.status, p.progress_percentage,
           c.name as company_name,
           u.first_name || ' ' || u.last_name as project_manager_name,
           COUNT(DISTINCT t.id) as total_tasks,
@@ -251,7 +251,7 @@ router.get('/active-projects', async (req, res, next) => {
     } else if (userRole === 'developer') {
       projectsQuery = `
         SELECT 
-          p.id, p.name, p.status, p.progress_percentage, p.due_date,
+          p.id, p.name, p.status, p.progress_percentage,
           c.name as company_name,
           u.first_name || ' ' || u.last_name as project_manager_name,
           COUNT(DISTINCT t.id) as total_tasks,
@@ -275,7 +275,7 @@ router.get('/active-projects', async (req, res, next) => {
     } else {
       projectsQuery = `
         SELECT 
-          p.id, p.name, p.status, p.progress_percentage, p.due_date,
+          p.id, p.name, p.status, p.progress_percentage,
           COUNT(DISTINCT t.id) as total_tasks,
           COUNT(DISTINCT t.id) FILTER (WHERE t.status = 'completed') as completed_tasks
         FROM projects p

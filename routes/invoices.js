@@ -4,7 +4,7 @@ const db = require('../config/database');
 const { requireRole } = require('../middleware/auth');
 const { validateUUID, validatePagination } = require('../middleware/validation');
 const { body } = require('express-validator');
-const PDFDocument = require('pdf-lib').PDFDocument;
+const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -560,6 +560,335 @@ router.get('/stats/overview', async (req, res, next) => {
 
     res.json({ stats: result.rows[0] });
   } catch (error) {
+    next(error);
+  }
+});
+
+// @route   GET /api/invoices/:id/pdf
+// @desc    Generate and download invoice PDF
+// @access  Private
+router.get('/:id/pdf', validateUUID, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Get invoice details with role-based access
+    let invoiceQuery = `
+      SELECT 
+        i.*, 
+        p.name as project_name,
+        c.name as company_name, c.email as company_email,
+        c.phone as company_phone, c.address as company_address,
+        u.first_name || ' ' || u.last_name as issued_by_name
+      FROM invoices i
+      LEFT JOIN projects p ON i.project_id = p.id
+      LEFT JOIN companies c ON i.company_id = c.id
+      LEFT JOIN users u ON i.issued_by = u.id
+      WHERE i.id = $1
+    `;
+    
+    const queryParams = [id];
+
+    // Role-based filtering
+    if (req.user.role === 'client') {
+      invoiceQuery += ` AND i.company_id IN (
+        SELECT cu.company_id FROM client_users cu WHERE cu.user_id = $2
+      )`;
+      queryParams.push(req.user.id);
+    } else if (req.user.role === 'developer') {
+      invoiceQuery += ` AND i.project_id IN (
+        SELECT DISTINCT p.id FROM projects p WHERE p.project_manager_id = $2
+      )`;
+      queryParams.push(req.user.id);
+    }
+
+    const invoiceResult = await db.query(invoiceQuery, queryParams);
+    if (invoiceResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Invoice not found or access denied' });
+    }
+
+    const invoice = invoiceResult.rows[0];
+
+    // Get invoice items
+    const itemsQuery = `
+      SELECT 
+        ii.description, ii.quantity, ii.unit_price, ii.total_price,
+        te.description as time_entry_description, te.date_worked
+      FROM invoice_items ii
+      LEFT JOIN time_entries te ON ii.time_entry_id = te.id
+      WHERE ii.invoice_id = $1
+      ORDER BY ii.created_at
+    `;
+    const itemsResult = await db.query(itemsQuery, [id]);
+
+    // Create PDF document
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([595.276, 841.890]); // A4 size in points
+    
+    // Get fonts
+    const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+    // Define colors
+    const primaryColor = rgb(0.2, 0.4, 0.6); // Blue
+    const textColor = rgb(0.2, 0.2, 0.2);    // Dark gray
+    const lightGray = rgb(0.9, 0.9, 0.9);
+
+    let yPosition = 750;
+
+    // Header
+    page.drawText('INVOICE', {
+      x: 50,
+      y: yPosition,
+      size: 28,
+      font: helveticaBold,
+      color: primaryColor,
+    });
+
+    page.drawText(`#${invoice.invoice_number}`, {
+      x: 400,
+      y: yPosition,
+      size: 18,
+      font: helveticaBold,
+      color: textColor,
+    });
+
+    yPosition -= 50;
+
+    // Company Info (From)
+    page.drawText('From:', {
+      x: 50,
+      y: yPosition,
+      size: 12,
+      font: helveticaBold,
+      color: textColor,
+    });
+
+    yPosition -= 20;
+    page.drawText('Meta Software', {
+      x: 50,
+      y: yPosition,
+      size: 11,
+      font: helvetica,
+      color: textColor,
+    });
+
+    yPosition -= 15;
+    page.drawText('Project Management System', {
+      x: 50,
+      y: yPosition,
+      size: 11,
+      font: helvetica,
+      color: textColor,
+    });
+
+    // Client Info (To)
+    yPosition = 650;
+    page.drawText('To:', {
+      x: 300,
+      y: yPosition,
+      size: 12,
+      font: helveticaBold,
+      color: textColor,
+    });
+
+    yPosition -= 20;
+    page.drawText(invoice.company_name || 'N/A', {
+      x: 300,
+      y: yPosition,
+      size: 11,
+      font: helvetica,
+      color: textColor,
+    });
+
+    if (invoice.company_address) {
+      yPosition -= 15;
+      page.drawText(invoice.company_address, {
+        x: 300,
+        y: yPosition,
+        size: 10,
+        font: helvetica,
+        color: textColor,
+      });
+    }
+
+    if (invoice.company_email) {
+      yPosition -= 15;
+      page.drawText(invoice.company_email, {
+        x: 300,
+        y: yPosition,
+        size: 10,
+        font: helvetica,
+        color: textColor,
+      });
+    }
+
+    // Invoice Details
+    yPosition = 580;
+    const formatDate = (date) => new Date(date).toLocaleDateString();
+
+    const details = [
+      { label: 'Invoice Date:', value: formatDate(invoice.issue_date) },
+      { label: 'Due Date:', value: formatDate(invoice.due_date) },
+      { label: 'Project:', value: invoice.project_name || 'N/A' },
+      { label: 'Status:', value: invoice.status.toUpperCase() },
+    ];
+
+    details.forEach(detail => {
+      page.drawText(detail.label, {
+        x: 50,
+        y: yPosition,
+        size: 10,
+        font: helveticaBold,
+        color: textColor,
+      });
+
+      page.drawText(detail.value, {
+        x: 150,
+        y: yPosition,
+        size: 10,
+        font: helvetica,
+        color: textColor,
+      });
+
+      yPosition -= 18;
+    });
+
+    // Items table
+    yPosition -= 30;
+    
+    // Table header
+    page.drawRectangle({
+      x: 50,
+      y: yPosition - 5,
+      width: 495,
+      height: 25,
+      color: lightGray,
+    });
+
+    const tableHeaders = [
+      { text: 'Description', x: 60 },
+      { text: 'Qty', x: 350 },
+      { text: 'Rate', x: 400 },
+      { text: 'Amount', x: 470 }
+    ];
+
+    tableHeaders.forEach(header => {
+      page.drawText(header.text, {
+        x: header.x,
+        y: yPosition + 5,
+        size: 10,
+        font: helveticaBold,
+        color: textColor,
+      });
+    });
+
+    yPosition -= 30;
+
+    // Table rows
+    itemsResult.rows.forEach(item => {
+      const description = item.description || item.time_entry_description || 'Service';
+      const truncatedDesc = description.length > 40 ? description.substring(0, 37) + '...' : description;
+      
+      page.drawText(truncatedDesc, {
+        x: 60,
+        y: yPosition,
+        size: 9,
+        font: helvetica,
+        color: textColor,
+      });
+
+      page.drawText(item.quantity.toString(), {
+        x: 350,
+        y: yPosition,
+        size: 9,
+        font: helvetica,
+        color: textColor,
+      });
+
+      page.drawText(`$${parseFloat(item.unit_price).toFixed(2)}`, {
+        x: 400,
+        y: yPosition,
+        size: 9,
+        font: helvetica,
+        color: textColor,
+      });
+
+      page.drawText(`$${parseFloat(item.total_price).toFixed(2)}`, {
+        x: 470,
+        y: yPosition,
+        size: 9,
+        font: helvetica,
+        color: textColor,
+      });
+
+      yPosition -= 20;
+    });
+
+    // Totals
+    yPosition -= 20;
+    
+    const totals = [
+      { label: 'Subtotal:', value: `$${parseFloat(invoice.subtotal).toFixed(2)}` },
+      { label: `Tax (${invoice.tax_rate}%):`, value: `$${parseFloat(invoice.tax_amount).toFixed(2)}` },
+      { label: 'Total:', value: `$${parseFloat(invoice.total_amount).toFixed(2)}` }
+    ];
+
+    totals.forEach((total, index) => {
+      const isTotal = index === totals.length - 1;
+      const font = isTotal ? helveticaBold : helvetica;
+      const size = isTotal ? 12 : 10;
+
+      page.drawText(total.label, {
+        x: 400,
+        y: yPosition,
+        size: size,
+        font: font,
+        color: textColor,
+      });
+
+      page.drawText(total.value, {
+        x: 470,
+        y: yPosition,
+        size: size,
+        font: font,
+        color: textColor,
+      });
+
+      yPosition -= isTotal ? 25 : 18;
+    });
+
+    // Footer
+    yPosition = 80;
+    page.drawText('Thank you for your business!', {
+      x: 50,
+      y: yPosition,
+      size: 12,
+      font: helveticaBold,
+      color: primaryColor,
+    });
+
+    yPosition -= 20;
+    page.drawText('Generated by Meta Software Project Management System', {
+      x: 50,
+      y: yPosition,
+      size: 8,
+      font: helvetica,
+      color: textColor,
+    });
+
+    // Generate PDF buffer
+    const pdfBytes = await pdfDoc.save();
+
+    // Set response headers
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="invoice-${invoice.invoice_number}.pdf"`);
+    res.setHeader('Content-Length', pdfBytes.length);
+
+    // Send PDF
+    res.send(Buffer.from(pdfBytes));
+
+  } catch (error) {
+    console.error('PDF generation error:', error);
     next(error);
   }
 });

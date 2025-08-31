@@ -3,7 +3,8 @@ const router = express.Router();
 const db = require('../config/database');
 const { requireRole } = require('../middleware/auth');
 const { validateCompany, validateUUID, validatePagination } = require('../middleware/validation');
-const { body } = require('express-validator');
+const { body, validationResult } = require('express-validator');
+const bcrypt = require('bcryptjs');
 
 
 router.get('/', requireRole(['administrator', 'developer']), validatePagination, async (req, res, next) => {
@@ -183,54 +184,56 @@ router.get('/:id', validateUUID, async (req, res, next) => {
 });
 
 // @route   POST /api/clients
-// @desc    Create new client/company
-// @access  Private (Admin and Developer)
-router.post('/', requireRole(['administrator', 'developer']), validateCompany, async (req, res, next) => {
-  try {
-    const {
-      name,
-      email,
-      phone,
-      address,
-      website,
-      contact_person,
-      notes
-    } = req.body;
-
-    // Check if company name already exists
-    const existingCompany = await db.query(
-      'SELECT id FROM companies WHERE name = $1 AND is_active = true',
-      [name]
-    );
-
-    if (existingCompany.rows.length > 0) {
-      return res.status(409).json({ error: 'Company with this name already exists' });
+// @desc    Create a new client
+// @access  Private (Administrator)
+router.post('/', requireRole(['administrator']), [
+    body('first_name', 'First name is required').not().isEmpty(),
+    body('last_name', 'Last name is required').not().isEmpty(),
+    body('email', 'Please include a valid email').isEmail(),
+    body('company_id', 'Company is required').isUUID(4)
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
     }
 
-    // Create company
-    const insertQuery = `
-      INSERT INTO companies (name, email, phone, address, website, contact_person, notes)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING id, name, email, created_at
-    `;
+    const { first_name, last_name, email, phone, company_id } = req.body;
 
-    const values = [name, email, phone, address, website, contact_person, notes];
-    const result = await db.query(insertQuery, values);
-    const company = result.rows[0];
+    try {
+        // Check if company exists
+        const company = await db.query('SELECT id FROM companies WHERE id = $1', [company_id]);
+        if (company.rows.length === 0) {
+            return res.status(404).json({ msg: 'Company not found' });
+        }
 
-    // Log activity
-    await db.query(
-      'INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details) VALUES ($1, $2, $3, $4, $5)',
-      [req.user.id, 'company_created', 'company', company.id, { name: company.name }]
+        // Check if user already exists
+        let user = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+        if (user.rows.length > 0) {
+            return res.status(400).json({ msg: 'User with this email already exists' });
+        }
+
+        // Create a new user with role 'client'
+        const password = Math.random().toString(36).slice(-8); // Generate a random password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+    const newUser = await db.query(
+      'INSERT INTO users (first_name, last_name, email, password_hash, role) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+      [first_name, last_name, email, hashedPassword, 'client']
     );
+        const userId = newUser.rows[0].id;
 
-    res.status(201).json({
-      message: 'Company created successfully',
-      company
-    });
-  } catch (error) {
-    next(error);
-  }
+        // Link user to the company in client_users table
+        await db.query('INSERT INTO client_users (user_id, company_id) VALUES ($1, $2)', [userId, company_id]);
+
+        // TODO: Send an email to the new client with their login credentials
+
+        res.status(201).json({ msg: 'Client created successfully', userId: userId });
+
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
 });
 
 // @route   PUT /api/clients/:id

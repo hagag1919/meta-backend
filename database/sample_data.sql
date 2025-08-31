@@ -142,12 +142,23 @@ INSERT INTO invoice_items (invoice_id, description, quantity, unit_price, total_
 INSERT INTO payments (invoice_id, amount, payment_date, payment_method, transaction_id) VALUES
 ('i1111111-1111-1111-1111-111111111111', 16237.50, '2025-01-25', 'Bank Transfer', 'TXN-20250125-001');
 
--- Insert sample chat room
+-- Insert sample chat rooms
 INSERT INTO chat_rooms (id, name, is_group_chat, project_id, created_by) VALUES
+('c0000000-0000-0000-0000-000000000000', 'General Discussion', true, NULL, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'),
 ('c1111111-1111-1111-1111-111111111111', 'E-commerce Project Team', true, 'p1111111-1111-1111-1111-111111111111', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb');
 
--- Insert chat participants
+-- Insert chat participants for General Discussion (all users)
 INSERT INTO chat_participants (chat_room_id, user_id) VALUES
+-- General Discussion participants (all users)
+('c0000000-0000-0000-0000-000000000000', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'),
+('c0000000-0000-0000-0000-000000000000', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'),
+('c0000000-0000-0000-0000-000000000000', 'cccccccc-cccc-cccc-cccc-cccccccccccc'),
+('c0000000-0000-0000-0000-000000000000', 'dddddddd-dddd-dddd-dddd-dddddddddddd'),
+('c0000000-0000-0000-0000-000000000000', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'),
+('c0000000-0000-0000-0000-000000000000', 'ffffffff-ffff-ffff-ffff-ffffffffffff'),
+('c0000000-0000-0000-0000-000000000000', 'gggggggg-gggg-gggg-gggg-gggggggggggg'),
+('c0000000-0000-0000-0000-000000000000', 'hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh'),
+-- Project chat participants
 ('c1111111-1111-1111-1111-111111111111', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'),
 ('c1111111-1111-1111-1111-111111111111', 'cccccccc-cccc-cccc-cccc-cccccccccccc'),
 ('c1111111-1111-1111-1111-111111111111', 'dddddddd-dddd-dddd-dddd-dddddddddddd'),
@@ -155,6 +166,11 @@ INSERT INTO chat_participants (chat_room_id, user_id) VALUES
 
 -- Insert sample chat messages
 INSERT INTO chat_messages (chat_room_id, sender_id, content) VALUES
+-- General Discussion messages
+('c0000000-0000-0000-0000-000000000000', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Welcome to Meta Software General Discussion! This is a space for everyone to communicate.'),
+('c0000000-0000-0000-0000-000000000000', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Thanks for setting this up! Great to have a central place for team communication.'),
+('c0000000-0000-0000-0000-000000000000', 'ffffffff-ffff-ffff-ffff-ffffffffffff', 'Hello everyone! Excited to be working with the Meta Software team.'),
+-- Project chat messages
 ('c1111111-1111-1111-1111-111111111111', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Good morning team! Ready for another productive day?'),
 ('c1111111-1111-1111-1111-111111111111', 'cccccccc-cccc-cccc-cccc-cccccccccccc', 'Yes! I''ll be working on the authentication API today.'),
 ('c1111111-1111-1111-1111-111111111111', 'dddddddd-dddd-dddd-dddd-dddddddddddd', 'I''ll start on the shopping cart UI once the API is ready.'),

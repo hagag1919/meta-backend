@@ -32,6 +32,7 @@ const validateProject = [
   body('name').trim().isLength({ min: 3, max: 255 }),
   body('description').optional().trim().isLength({ max: 5000 }),
   body('company_id').isUUID(),
+  body('status').optional().isIn(['planning', 'ongoing', 'completed', 'stopped']),
   body('budget').optional().isFloat({ min: 0 }),
   body('start_date').optional().isISO8601().toDate(),
   body('end_date').optional().isISO8601().toDate(),

@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 
 const db = require('../config/database');
+const { authenticateToken } = require('../middleware/auth');
 const { 
   authRateLimit, 
   validateEmail, 
@@ -91,6 +92,31 @@ router.post('/register',
     // Generate tokens
     const token = generateToken(user.id);
     const refreshToken = generateRefreshToken(user.id);
+
+    // Add user to general chat room automatically
+    try {
+      // Find the general discussion room (where project_id is NULL and name contains 'General')
+      const generalRoomQuery = `
+        SELECT id FROM chat_rooms 
+        WHERE project_id IS NULL 
+        AND (LOWER(name) LIKE '%general%' OR LOWER(name) LIKE '%discussion%')
+        LIMIT 1
+      `;
+      const generalRoomResult = await db.query(generalRoomQuery);
+      
+      if (generalRoomResult.rows.length > 0) {
+        const generalRoomId = generalRoomResult.rows[0].id;
+        
+        // Add user to general chat room
+        await db.query(
+          'INSERT INTO chat_participants (chat_room_id, user_id) VALUES ($1, $2) ON CONFLICT (chat_room_id, user_id) DO NOTHING',
+          [generalRoomId, user.id]
+        );
+      }
+    } catch (chatError) {
+      // Log the error but don't fail registration
+      console.error('Failed to add user to general chat room:', chatError);
+    }
 
     // Log activity
     await db.query(
@@ -341,7 +367,7 @@ router.post('/reset-password', async (req, res, next) => {
 // @route   POST /api/auth/change-password
 // @desc    Change password (authenticated user)
 // @access  Private
-router.post('/change-password', async (req, res, next) => {
+router.post('/change-password', authenticateToken, async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
     const userId = req.user.id;
@@ -393,7 +419,7 @@ router.post('/change-password', async (req, res, next) => {
 // @route   POST /api/auth/logout
 // @desc    Logout user (for logging purposes)
 // @access  Private
-router.post('/logout', async (req, res, next) => {
+router.post('/logout', authenticateToken, async (req, res, next) => {
   try {
     const userId = req.user.id;
 
@@ -404,6 +430,110 @@ router.post('/logout', async (req, res, next) => {
     );
 
     res.json({ message: 'Logout successful' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @route   POST /api/auth/send-verification
+// @desc    Send email verification link
+// @access  Private
+router.post('/send-verification', authenticateToken, async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    // Check if user already verified
+    const userQuery = 'SELECT email, email_verified, first_name FROM users WHERE id = $1';
+    const result = await db.query(userQuery, [userId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const user = result.rows[0];
+
+    if (user.email_verified) {
+      return res.status(400).json({ error: 'Email already verified' });
+    }
+
+    // Generate verification token (reuse password reset fields temporarily)
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpires = new Date(Date.now() + 24 * 3600000); // 24 hours
+
+    // Save verification token in password reset fields (temporary approach)
+    await db.query(
+      'UPDATE users SET password_reset_token = $1, password_reset_expires = $2 WHERE id = $3',
+      [verificationToken, verificationExpires, userId]
+    );
+
+    // Send verification email
+    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
+    
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: 'Email Verification - Meta Software',
+      html: `
+        <h2>Email Verification</h2>
+        <p>Hi ${user.first_name},</p>
+        <p>Please click the link below to verify your email address:</p>
+        <a href="${verificationUrl}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Verify Email</a>
+        <p>This link will expire in 24 hours.</p>
+        <p>If you didn't create this account, please ignore this email.</p>
+        <p>Best regards,<br>Meta Software Team</p>
+      `
+    };
+
+    await emailTransporter.sendMail(mailOptions);
+
+    res.json({ message: 'Verification email sent successfully' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @route   POST /api/auth/verify-email
+// @desc    Verify email with token
+// @access  Public
+router.post('/verify-email', async (req, res, next) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ error: 'Verification token is required' });
+    }
+
+    // Find user with valid verification token (using password reset fields)
+    const userQuery = `
+      SELECT id, email FROM users 
+      WHERE password_reset_token = $1 
+      AND password_reset_expires > CURRENT_TIMESTAMP 
+      AND is_active = true
+    `;
+    
+    const result = await db.query(userQuery, [token]);
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({ error: 'Invalid or expired verification token' });
+    }
+
+    const user = result.rows[0];
+
+    // Update email verified status and clear token
+    await db.query(
+      `UPDATE users 
+       SET email_verified = true, password_reset_token = NULL, password_reset_expires = NULL 
+       WHERE id = $1`,
+      [user.id]
+    );
+
+    // Log activity
+    await db.query(
+      'INSERT INTO activity_logs (user_id, action, entity_type, details) VALUES ($1, $2, $3, $4)',
+      [user.id, 'email_verified', 'user', { email: user.email }]
+    );
+
+    res.json({ message: 'Email verified successfully' });
   } catch (error) {
     next(error);
   }

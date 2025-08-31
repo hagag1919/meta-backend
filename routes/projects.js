@@ -15,35 +15,36 @@ router.get('/', validatePagination, async (req, res, next) => {
       limit = 10,
       search = '',
       status = '',
-      company_id = '',
       sort = 'created_at',
       order = 'DESC'
     } = req.query;
 
     const offset = (page - 1) * limit;
     
-    // Build WHERE clause based on user role
     let whereConditions = [];
     let queryParams = [];
     let paramCount = 0;
 
     // Role-based filtering
     if (req.user.role === 'client') {
-      // Clients can only see projects from their company
-      paramCount++;
-      whereConditions.push(`p.company_id IN (
-        SELECT cu.company_id FROM client_users cu WHERE cu.user_id = $${paramCount}
-      )`);
-      queryParams.push(req.user.id);
+      // Find the company_id for the client user
+      const clientCompanyQuery = 'SELECT company_id FROM client_users WHERE user_id = $1';
+      const companyResult = await db.query(clientCompanyQuery, [req.user.id]);
+      if (companyResult.rows.length > 0) {
+        const companyId = companyResult.rows[0].company_id;
+        paramCount++;
+        whereConditions.push(`p.company_id = $${paramCount}`);
+        queryParams.push(companyId);
+      } else {
+        // No company associated, return no projects
+        return res.json({ projects: [], totalPages: 0, currentPage: 1 });
+      }
     } else if (req.user.role === 'developer') {
-      // Developers can see projects they're assigned to or managing
       paramCount++;
-      whereConditions.push(`(p.project_manager_id = $${paramCount} OR EXISTS (
-        SELECT 1 FROM project_members pm WHERE pm.project_id = p.id AND pm.user_id = $${paramCount}
-      ))`);
+      whereConditions.push(`p.id IN (SELECT project_id FROM project_members WHERE user_id = $${paramCount})`);
       queryParams.push(req.user.id);
     }
-    // Administrators can see all projects
+    // Admins can see all projects, so no condition is added
 
     if (search) {
       paramCount++;
@@ -51,70 +52,40 @@ router.get('/', validatePagination, async (req, res, next) => {
       queryParams.push(`%${search}%`);
     }
 
-    if (status && ['planning', 'ongoing', 'completed', 'stopped'].includes(status)) {
+    if (status) {
       paramCount++;
       whereConditions.push(`p.status = $${paramCount}`);
       queryParams.push(status);
     }
 
-    if (company_id) {
-      paramCount++;
-      whereConditions.push(`p.company_id = $${paramCount}`);
-      queryParams.push(company_id);
-    }
-
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    // Get total count
-    const countQuery = `
-      SELECT COUNT(*) 
-      FROM projects p
-      ${whereClause}
-    `;
+    const countQuery = `SELECT COUNT(*) FROM projects p ${whereClause}`;
     const countResult = await db.query(countQuery, queryParams);
     const totalProjects = parseInt(countResult.rows[0].count);
 
-    // Get projects with related data
     const projectsQuery = `
       SELECT 
-        p.id, p.name, p.description, p.budget, p.currency,
-        p.start_date, p.end_date, p.estimated_hours, p.actual_hours,
-        p.status, p.progress_percentage, p.repository_url,
-        p.created_at, p.updated_at,
-        c.name as company_name, c.id as company_id,
-        u.first_name || ' ' || u.last_name as project_manager_name,
-        u.id as project_manager_id,
-        COUNT(DISTINCT pm.user_id) as team_size,
-        COUNT(DISTINCT t.id) as total_tasks,
-        COUNT(DISTINCT t.id) FILTER (WHERE t.status = 'completed') as completed_tasks
+        p.id, p.name, p.description, p.status, p.start_date, p.end_date, p.budget,
+        c.name as company_name
       FROM projects p
       LEFT JOIN companies c ON p.company_id = c.id
-      LEFT JOIN users u ON p.project_manager_id = u.id
-      LEFT JOIN project_members pm ON p.id = pm.project_id AND pm.left_at IS NULL
-      LEFT JOIN tasks t ON p.id = t.project_id
       ${whereClause}
-      GROUP BY p.id, c.id, c.name, u.id, u.first_name, u.last_name
       ORDER BY p.${sort} ${order}
       LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
     `;
-
-    queryParams.push(limit, offset);
-    const result = await db.query(projectsQuery, queryParams);
-
-    const totalPages = Math.ceil(totalProjects / limit);
+    
+    const projectsResult = await db.query(projectsQuery, [...queryParams, limit, offset]);
 
     res.json({
-      projects: result.rows,
-      pagination: {
-        current_page: parseInt(page),
-        total_pages: totalPages,
-        total_projects: totalProjects,
-        has_next: page < totalPages,
-        has_prev: page > 1
-      }
+      projects: projectsResult.rows,
+      totalPages: Math.ceil(totalProjects / limit),
+      currentPage: parseInt(page)
     });
-  } catch (error) {
-    next(error);
+
+  } catch (err) {
+    console.error('Error fetching projects:', err);
+    next(err);
   }
 });
 
@@ -228,8 +199,8 @@ router.get('/:id', validateUUID, async (req, res, next) => {
 
 // @route   POST /api/projects
 // @desc    Create new project
-// @access  Private (Admin or Developer)
-router.post('/', requireRole(['administrator', 'developer']), validateProject, async (req, res, next) => {
+// @access  Private (Admin)
+router.post('/', requireRole(['administrator']), validateProject, async (req, res, next) => {
   try {
     const {
       name,
@@ -295,7 +266,9 @@ router.post('/', requireRole(['administrator', 'developer']), validateProject, a
 
     // Emit socket event for real-time updates
     const io = req.app.get('socketio');
-    io.emit('project_created', { project, created_by: req.user });
+    if (io) {
+      io.emit('project_created', { project, created_by: req.user });
+    }
 
     res.status(201).json({
       message: 'Project created successfully',

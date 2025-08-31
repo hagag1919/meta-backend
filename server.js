@@ -34,6 +34,8 @@ const io = socketIo(server, {
 });
 
 app.set('io', io);
+// Some routes expect 'socketio' key; set both to avoid undefined in handlers
+app.set('socketio', io);
 
 app.use(setSecurityHeaders);
 
@@ -66,13 +68,10 @@ app.use(cors({
       'https://app.metasoftware.com'
     ];
     
+    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    }
-    // Check if origin matches https://*.onrender.com pattern
-    else if (origin && origin.match(/^https:\/\/.*\.onrender\.com$/)) {
+    if (allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.onrender.com')) {
       callback(null, true);
     } else {
       console.warn(`CORS blocked origin: ${origin}`);
@@ -83,6 +82,9 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
+
+// Handle preflight requests
+app.options('*', cors());
 
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('combined'));
@@ -111,6 +113,7 @@ app.use(sanitizeInputs);
 
 app.use('/api/users', authenticateToken, require('./routes/users'));
 app.use('/api/projects', authenticateToken, require('./routes/projects'));
+app.use('/api/projects/:projectId/milestones', authenticateToken, require('./routes/milestones'));
 app.use('/api/tasks', authenticateToken, require('./routes/tasks'));
 app.use('/api/clients', authenticateToken, require('./routes/clients'));
 app.use('/api/dashboard', authenticateToken, require('./routes/dashboard'));
@@ -121,6 +124,7 @@ app.use('/api/invoices', authenticateToken, require('./routes/invoices'));
 app.use('/api/reports', authenticateToken, require('./routes/reports'));
 app.use('/api/settings', authenticateToken, require('./routes/settings'));
 app.use('/api/chat', authenticateToken, require('./routes/chat'));
+app.use('/api/companies', authenticateToken, require('./routes/companies'));
 
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });

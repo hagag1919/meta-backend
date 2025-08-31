@@ -4,17 +4,19 @@ const db = require('../config/database');
 const { requireRole } = require('../middleware/auth');
 const { validatePagination } = require('../middleware/validation');
 
-// @route   GET /api/reports/projects
-// @desc    Get project reports
-// @access  Private
+
 router.get('/projects', validatePagination, async (req, res, next) => {
   try {
     const {
       status = '',
-      start_date = '',
-      end_date = '',
+      startDate = '',
+      endDate = '',
+      start_date = startDate, // Support both parameter names
+      end_date = endDate,     // Support both parameter names
       company_id = '',
-      manager_id = ''
+      manager_id = '',
+      userId = '',           // Support userId from frontend
+      projectId = ''         // Support projectId from frontend
     } = req.query;
 
     let whereConditions = [];
@@ -34,7 +36,7 @@ router.get('/projects', validatePagination, async (req, res, next) => {
       queryParams.push(req.user.id);
     }
 
-    if (status && ['active', 'completed', 'on_hold', 'canceled'].includes(status)) {
+    if (status && ['ongoing', 'completed', 'stopped', 'planning'].includes(status)) {
       paramCount++;
       whereConditions.push(`p.status = $${paramCount}`);
       queryParams.push(status);
@@ -62,6 +64,22 @@ router.get('/projects', validatePagination, async (req, res, next) => {
       paramCount++;
       whereConditions.push(`p.project_manager_id = $${paramCount}`);
       queryParams.push(manager_id);
+    }
+
+    // Handle userId filter (for project members)
+    if (userId) {
+      paramCount++;
+      whereConditions.push(`(p.project_manager_id = $${paramCount} OR EXISTS (
+        SELECT 1 FROM project_members pm WHERE pm.project_id = p.id AND pm.user_id = $${paramCount}
+      ))`);
+      queryParams.push(userId);
+    }
+
+    // Handle projectId filter
+    if (projectId) {
+      paramCount++;
+      whereConditions.push(`p.id = $${paramCount}`);
+      queryParams.push(projectId);
     }
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
@@ -104,10 +122,10 @@ router.get('/projects', validatePagination, async (req, res, next) => {
     const summaryQuery = `
       SELECT 
         COUNT(*) as total_projects,
-        COUNT(*) FILTER (WHERE status = 'active') as active_projects,
+        COUNT(*) FILTER (WHERE status = 'ongoing') as ongoing_projects,
         COUNT(*) FILTER (WHERE status = 'completed') as completed_projects,
-        COUNT(*) FILTER (WHERE status = 'on_hold') as on_hold_projects,
-        COUNT(*) FILTER (WHERE status = 'canceled') as canceled_projects,
+        COUNT(*) FILTER (WHERE status = 'stopped') as stopped_projects,
+        COUNT(*) FILTER (WHERE status = 'planning') as planning_projects,
         SUM(budget) as total_budget,
         AVG(budget) as average_budget
       FROM projects p
@@ -135,8 +153,12 @@ router.get('/tasks', validatePagination, async (req, res, next) => {
       project_id = '',
       status = '',
       priority = '',
-      start_date = '',
-      end_date = '',
+      startDate = '',
+      endDate = '',
+      start_date = startDate, // Support both parameter names
+      end_date = endDate,     // Support both parameter names
+      userId = developer_id || '', // Support userId from frontend
+      projectId = project_id || '', // Support projectId from frontend
       group_by = 'developer'
     } = req.query;
 
@@ -165,19 +187,19 @@ router.get('/tasks', validatePagination, async (req, res, next) => {
       queryParams.push(req.user.id);
     }
 
-    if (developer_id) {
+    if (developer_id || userId) {
       paramCount++;
       whereConditions.push(`t.assigned_to = $${paramCount}`);
-      queryParams.push(developer_id);
+      queryParams.push(developer_id || userId);
     }
 
-    if (project_id) {
+    if (project_id || projectId) {
       paramCount++;
       whereConditions.push(`t.project_id = $${paramCount}`);
-      queryParams.push(project_id);
+      queryParams.push(project_id || projectId);
     }
 
-    if (status && ['to_do', 'in_progress', 'completed', 'blocked'].includes(status)) {
+    if (status && ['new', 'in_progress', 'completed', 'canceled'].includes(status)) {
       paramCount++;
       whereConditions.push(`t.status = $${paramCount}`);
       queryParams.push(status);
@@ -297,8 +319,13 @@ router.get('/productivity', async (req, res, next) => {
     const {
       user_id = '',
       project_id = '',
-      start_date = '',
-      end_date = '',
+      startDate = '',
+      endDate = '',
+      start_date = startDate, // Support both parameter names
+      end_date = endDate,     // Support both parameter names
+      userId = user_id || '', // Support userId from frontend
+      projectId = project_id || '', // Support projectId from frontend
+      status = '',
       period = 'month'
     } = req.query;
 
@@ -338,16 +365,16 @@ router.get('/productivity', async (req, res, next) => {
       queryParams.push(req.user.id);
     }
 
-    if (user_id) {
+    if (user_id || userId) {
       paramCount++;
       whereConditions.push(`te.user_id = $${paramCount}`);
-      queryParams.push(user_id);
+      queryParams.push(user_id || userId);
     }
 
-    if (project_id) {
+    if (project_id || projectId) {
       paramCount++;
       whereConditions.push(`te.project_id = $${paramCount}`);
-      queryParams.push(project_id);
+      queryParams.push(project_id || projectId);
     }
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
@@ -473,10 +500,15 @@ router.get('/productivity', async (req, res, next) => {
 router.get('/financial', requireRole(['administrator', 'developer']), async (req, res, next) => {
   try {
     const {
-      start_date = '',
-      end_date = '',
+      startDate = '',
+      endDate = '',
+      start_date = startDate, // Support both parameter names
+      end_date = endDate,     // Support both parameter names
       company_id = '',
-      project_id = ''
+      project_id = '',
+      projectId = project_id || '', // Support projectId from frontend
+      status = '',
+      userId = ''
     } = req.query;
 
     let whereConditions = [];
