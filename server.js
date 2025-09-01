@@ -10,6 +10,7 @@ const path = require('path');
 
 const { 
   sanitizeInputs, 
+  sanitizeCommentInputs,
   generalRateLimit, 
   setSecurityHeaders, 
   securityLogger 
@@ -109,23 +110,20 @@ app.get('/health', (req, res) => {
 
 app.use('/api/auth', require('./routes/auth'));
 
-// Sanitize all other inputs
-app.use(sanitizeInputs);
-
-app.use('/api/users', authenticateToken, require('./routes/users'));
-app.use('/api/projects', authenticateToken, require('./routes/projects'));
-app.use('/api/projects/:projectId/milestones', authenticateToken, require('./routes/milestones'));
-app.use('/api/tasks', authenticateToken, require('./routes/tasks'));
-app.use('/api/clients', authenticateToken, require('./routes/clients'));
-app.use('/api/dashboard', authenticateToken, require('./routes/dashboard'));
-app.use('/api/comments', authenticateToken, require('./routes/comments'));
-app.use('/api/files', authenticateToken, require('./routes/files'));
-app.use('/api/time', authenticateToken, require('./routes/time'));
-app.use('/api/invoices', authenticateToken, require('./routes/invoices'));
-app.use('/api/reports', authenticateToken, require('./routes/reports'));
-app.use('/api/settings', authenticateToken, require('./routes/settings'));
-app.use('/api/chat', authenticateToken, require('./routes/chat'));
-app.use('/api/companies', authenticateToken, require('./routes/companies'));
+app.use('/api/users', sanitizeInputs, authenticateToken, require('./routes/users'));
+app.use('/api/projects', sanitizeInputs, authenticateToken, require('./routes/projects'));
+app.use('/api/projects/:projectId/milestones', sanitizeInputs, authenticateToken, require('./routes/milestones'));
+app.use('/api/tasks', sanitizeInputs, authenticateToken, require('./routes/tasks'));
+app.use('/api/clients', sanitizeInputs, authenticateToken, require('./routes/clients'));
+app.use('/api/dashboard', sanitizeInputs, authenticateToken, require('./routes/dashboard'));
+app.use('/api/comments', sanitizeCommentInputs, authenticateToken, require('./routes/comments'));
+app.use('/api/files', sanitizeInputs, authenticateToken, require('./routes/files'));
+app.use('/api/time', sanitizeInputs, authenticateToken, require('./routes/time'));
+app.use('/api/invoices', sanitizeInputs, authenticateToken, require('./routes/invoices'));
+app.use('/api/reports', sanitizeInputs, authenticateToken, require('./routes/reports'));
+app.use('/api/settings', sanitizeInputs, authenticateToken, require('./routes/settings'));
+app.use('/api/chat', sanitizeInputs, authenticateToken, require('./routes/chat'));
+app.use('/api/companies', sanitizeInputs, authenticateToken, require('./routes/companies'));
 
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
@@ -171,8 +169,8 @@ io.on('connection', (socket) => {
       const projectsQuery = `
         SELECT DISTINCT p.id 
         FROM projects p 
-        LEFT JOIN project_team pt ON p.id = pt.project_id 
-        WHERE p.project_manager_id = $1 OR pt.user_id = $1
+        LEFT JOIN project_members pm ON p.id = pm.project_id 
+        WHERE p.project_manager_id = $1 OR pm.user_id = $1
       `;
       const result = await db.query(projectsQuery, [socket.user.id]);
       

@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../config/database');
 const { requireRole } = require('../middleware/auth');
 const { validatePagination } = require('../middleware/validation');
+const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
 
 
 router.get('/projects', validatePagination, async (req, res, next) => {
@@ -86,13 +87,13 @@ router.get('/projects', validatePagination, async (req, res, next) => {
 
     const projectsQuery = `
       SELECT 
-        p.id, p.name, p.description, p.status, p.priority,
+        p.id, p.name, p.description, p.status,
         p.start_date, p.end_date, p.budget, p.estimated_hours,
         c.name as company_name,
         u.first_name || ' ' || u.last_name as manager_name,
         COUNT(DISTINCT t.id) as total_tasks,
         COUNT(DISTINCT t.id) FILTER (WHERE t.status = 'completed') as completed_tasks,
-        COUNT(DISTINCT pt.user_id) as team_members,
+        COUNT(DISTINCT pm.user_id) as team_members,
         COALESCE(SUM(te.hours_worked), 0) as total_hours_worked,
         COALESCE(SUM(te.hours_worked * te.hourly_rate), 0) as total_cost,
         CASE 
@@ -109,7 +110,7 @@ router.get('/projects', validatePagination, async (req, res, next) => {
       LEFT JOIN companies c ON p.company_id = c.id
       LEFT JOIN users u ON p.project_manager_id = u.id
       LEFT JOIN tasks t ON p.id = t.project_id
-      LEFT JOIN project_team pt ON p.id = pt.project_id
+      LEFT JOIN project_members pm ON p.id = pm.project_id
       LEFT JOIN time_entries te ON p.id = te.project_id
       ${whereClause}
       GROUP BY p.id, c.name, u.first_name, u.last_name
@@ -627,6 +628,187 @@ router.get('/financial', requireRole(['administrator', 'developer']), async (req
         end_date: defaultEndDate
       }
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @route   POST /api/reports/export
+// @desc    Export reports as PDF (projects | financial)
+// @access  Private (role-restricted per type)
+router.post('/export', async (req, res, next) => {
+  try {
+    const { type = 'projects', format = 'pdf', ...filters } = req.body || {};
+
+    if (format !== 'pdf') {
+      return res.status(400).json({ error: 'Only PDF export is supported at this time' });
+    }
+
+    // Role restrictions for financial exports
+    if (type === 'financial' && !['administrator', 'developer'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Insufficient permissions to export financial reports' });
+    }
+
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([595.28, 841.89]); // A4 portrait
+    const { width } = page.getSize();
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+    const title = `${type.charAt(0).toUpperCase() + type.slice(1)} Report`;
+    const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+
+    let y = 800;
+    const lineHeight = 18;
+    const drawText = (text, x = 40, size = 12, color = rgb(0, 0, 0)) => {
+      page.drawText(String(text ?? ''), { x, y, size, font, color });
+      y -= lineHeight;
+    };
+
+    // Header
+    drawText('Meta Software', 40, 16);
+    drawText(title, 40, 20);
+    drawText(`Generated: ${now}`, 40, 10, rgb(0.3, 0.3, 0.3));
+    y -= 10;
+
+    // Normalize date filters
+    const startDate = filters.start_date || filters.startDate || '';
+    const endDate = filters.end_date || filters.endDate || '';
+
+    // Fetch data based on type
+    if (type === 'projects') {
+      const {
+        status = '',
+        company_id = '',
+        manager_id = '',
+        userId = filters.userId || '',
+        projectId = filters.projectId || ''
+      } = filters;
+
+      let whereConditions = [];
+      let queryParams = [];
+      let paramCount = 0;
+
+      if (req.user.role === 'client') {
+        paramCount++;
+        whereConditions.push(`p.company_id IN (
+          SELECT cu.company_id FROM client_users cu WHERE cu.user_id = $${paramCount}
+        )`);
+        queryParams.push(req.user.id);
+      } else if (req.user.role === 'developer') {
+        paramCount++;
+        whereConditions.push(`p.project_manager_id = $${paramCount}`);
+        queryParams.push(req.user.id);
+      }
+
+      if (status && ['ongoing', 'completed', 'stopped', 'planning'].includes(status)) {
+        paramCount++;
+        whereConditions.push(`p.status = $${paramCount}`);
+        queryParams.push(status);
+      }
+      if (startDate) {
+        paramCount++;
+        whereConditions.push(`p.start_date >= $${paramCount}`);
+        queryParams.push(startDate);
+      }
+      if (endDate) {
+        paramCount++;
+        whereConditions.push(`p.end_date <= $${paramCount}`);
+        queryParams.push(endDate);
+      }
+      if (company_id) {
+        paramCount++;
+        whereConditions.push(`p.company_id = $${paramCount}`);
+        queryParams.push(company_id);
+      }
+      if (manager_id) {
+        paramCount++;
+        whereConditions.push(`p.project_manager_id = $${paramCount}`);
+        queryParams.push(manager_id);
+      }
+      if (userId) {
+        paramCount++;
+        whereConditions.push(`(p.project_manager_id = $${paramCount} OR EXISTS (
+          SELECT 1 FROM project_members pm WHERE pm.project_id = p.id AND pm.user_id = $${paramCount}
+        ))`);
+        queryParams.push(userId);
+      }
+      if (projectId) {
+        paramCount++;
+        whereConditions.push(`p.id = $${paramCount}`);
+        queryParams.push(projectId);
+      }
+
+      const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+      const query = `
+        SELECT p.id, p.name, p.status, p.budget, p.start_date, p.end_date,
+               c.name as company_name
+        FROM projects p
+        LEFT JOIN companies c ON p.company_id = c.id
+        ${whereClause}
+        ORDER BY p.created_at DESC
+        LIMIT 100
+      `;
+
+      const result = await db.query(query, queryParams);
+
+      drawText(`Date range: ${startDate || 'Any'} to ${endDate || 'Any'}`);
+      drawText(`Projects: ${result.rows.length}`);
+      y -= 6;
+      drawText('List:', 40, 12);
+      y -= 4;
+      result.rows.forEach((pRow, idx) => {
+        if (y < 60) { y = 780; pdfDoc.addPage([595.28, 841.89]); }
+        drawText(`${idx + 1}. ${pRow.name} | ${pRow.company_name || '-'} | ${pRow.status} | Budget: ${pRow.budget || 0}`);
+      });
+    } else if (type === 'financial') {
+      // Only admin/dev reach here due to role check above
+      let whereConditions = [];
+      let queryParams = [];
+      let paramCount = 0;
+
+      const defaultEndDate = endDate || new Date().toISOString().split('T')[0];
+      const defaultStartDate = startDate || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+      paramCount++; whereConditions.push(`i.issue_date >= $${paramCount}`); queryParams.push(defaultStartDate);
+      paramCount++; whereConditions.push(`i.issue_date <= $${paramCount}`); queryParams.push(defaultEndDate);
+
+      if (filters.company_id) {
+        paramCount++; whereConditions.push(`i.company_id = $${paramCount}`); queryParams.push(filters.company_id);
+      }
+      if (filters.project_id || filters.projectId) {
+        paramCount++; whereConditions.push(`i.project_id = $${paramCount}`); queryParams.push(filters.project_id || filters.projectId);
+      }
+
+      const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+      const invoiceQuery = `
+        SELECT 
+          COUNT(*) as total_invoices,
+          SUM(total_amount) as total_invoiced,
+          SUM(total_amount) FILTER (WHERE status = 'paid') as total_paid,
+          SUM(total_amount) FILTER (WHERE status = 'pending') as total_pending,
+          SUM(total_amount) FILTER (WHERE status = 'overdue') as total_overdue
+        FROM invoices i
+        ${whereClause}
+      `;
+      const invoiceSummary = await db.query(invoiceQuery, queryParams);
+      const s = invoiceSummary.rows[0] || {};
+
+      drawText(`Date range: ${defaultStartDate} to ${defaultEndDate}`);
+      drawText(`Total Invoices: ${s.total_invoices || 0}`);
+      drawText(`Total Invoiced: ${s.total_invoiced || 0}`);
+      drawText(`Total Paid: ${s.total_paid || 0}`);
+      drawText(`Total Pending: ${s.total_pending || 0}`);
+      drawText(`Total Overdue: ${s.total_overdue || 0}`);
+    } else {
+      drawText('Unsupported report type');
+    }
+
+    const pdfBytes = await pdfDoc.save();
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${type}-report.pdf"`);
+    return res.status(200).send(Buffer.from(pdfBytes));
   } catch (error) {
     next(error);
   }

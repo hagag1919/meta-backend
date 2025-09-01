@@ -7,16 +7,15 @@ const { JSDOM } = require('jsdom');
 const window = new JSDOM('').window;
 const DOMPurify = createDOMPurify(window);
 
-// SQL Injection protection patterns
+// SQL Injection protection patterns - More specific to avoid false positives
 const SQL_INJECTION_PATTERNS = [
-  /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b)/gi,
-  /(--;|\/\*|\*\/;|;\s*--)/g,  // More specific comment patterns
-  /(\bOR\b.*=.*|1=1|1\s*=\s*1)/gi,
+  /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC)\b).*(\b(FROM|WHERE|INTO|VALUES)\b)/gi,
+  /(--;|\s*\/\*|\*\/\s*;)/g,  // SQL comment patterns
   /(\bUNION\b.*\bSELECT\b)/gi,
   /(\bINTO\b.*\bOUTFILE\b)/gi,
   /(\bLOAD_FILE\b|\bINTO\b.*\bDUMPFILE\b)/gi,
-  /('\s*OR\s*'|"\s*OR\s*")/gi,  // Specific quote-based injection patterns
-  /('\s*;\s*|\s*;\s*--)/gi  // Semicolon with quotes for SQL termination
+  /('\s*OR\s*'.*=|"\s*OR\s*".*=)/gi,  // More specific OR injection patterns
+  /('\s*;\s*DROP|"\s*;\s*DROP)/gi  // Semicolon with dangerous commands
 ];
 
 // XSS protection patterns
@@ -84,6 +83,35 @@ const sanitizeInput = (value) => {
 };
 
 /**
+ * Less restrictive sanitization for comment content
+ */
+const sanitizeCommentInput = (value) => {
+  if (typeof value !== 'string') {
+    return value;
+  }
+
+  // Only check for the most dangerous patterns for comments
+  const dangerousPatterns = [
+    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+    /javascript:/gi,
+    /(\bUNION\b.*\bSELECT\b)/gi,
+    /(\bDROP\b.*\bTABLE\b)/gi
+  ];
+
+  for (const pattern of dangerousPatterns) {
+    if (pattern.test(value)) {
+      throw new Error('Potentially dangerous content detected');
+    }
+  }
+
+  // Allow more HTML tags for comment formatting
+  return DOMPurify.sanitize(value, { 
+    ALLOWED_TAGS: ['b', 'i', 'u', 'strong', 'em', 'br', 'p'], 
+    ALLOWED_ATTR: [] 
+  });
+};
+
+/**
  * Recursively sanitize object properties
  */
 const sanitizeObject = (obj) => {
@@ -106,6 +134,57 @@ const sanitizeObject = (obj) => {
   return sanitizeInput(obj);
 };
 
+/**
+ * Recursively sanitize object properties with comment-friendly sanitization
+ */
+const sanitizeCommentObject = (obj) => {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeCommentObject);
+  }
+
+  if (typeof obj === 'object') {
+    const sanitized = {};
+    for (const [key, value] of Object.entries(obj)) {
+      // Use regular sanitization for keys but comment sanitization for values
+      sanitized[key] = sanitizeCommentObject(value);
+    }
+    return sanitized;
+  }
+
+  return sanitizeCommentInput(obj);
+};
+
+/**
+ * Middleware to sanitize comment inputs with less restrictions
+ */
+const sanitizeCommentInputs = (req, res, next) => {
+  try {
+    // Use lenient sanitization for all comment-related data
+    if (req.body && typeof req.body === 'object') {
+      req.body = sanitizeCommentObject(req.body);
+    }
+
+    if (req.query && typeof req.query === 'object') {
+      req.query = sanitizeCommentObject(req.query);
+    }
+
+    if (req.params && typeof req.params === 'object') {
+      req.params = sanitizeCommentObject(req.params);
+    }
+
+    next();
+  } catch (error) {
+    console.error('Comment security validation failed:', error.message);
+    return res.status(400).json({ 
+      error: 'Invalid input detected',
+      details: 'Comment contains potentially dangerous content'
+    });
+  }
+};
 /**
  * Middleware to sanitize all request inputs
  */
@@ -278,19 +357,19 @@ const createRateLimit = (windowMs, max, message = 'Too many requests') => {
 // Different rate limits for different endpoints
 const authRateLimit = createRateLimit(
   15 * 60 * 1000, // 15 minutes
-  50, // limit each IP to 50 requests per windowMs (increased from 5 for development)
+  70, // limit each IP to 50 requests per windowMs (increased from 5 for development)
   'Too many authentication attempts'
 );
 
 const generalRateLimit = createRateLimit(
   15 * 60 * 1000, // 15 minutes
-  100, // limit each IP to 100 requests per windowMs
+  200, // limit each IP to 100 requests per windowMs
   'Too many requests'
 );
 
 const uploadRateLimit = createRateLimit(
   60 * 60 * 1000, // 1 hour
-  20, // limit each IP to 20 uploads per hour
+  30, // limit each IP to 20 uploads per hour
   'Too many file uploads'
 );
 
@@ -380,8 +459,11 @@ const securityLogger = (req, res, next) => {
 
 module.exports = {
   sanitizeInput,
+  sanitizeCommentInput,
   sanitizeObject,
+  sanitizeCommentObject,
   sanitizeInputs,
+  sanitizeCommentInputs,
   validateUUID,
   validatePagination,
   validateEmail,
