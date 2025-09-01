@@ -358,19 +358,19 @@ const createRateLimit = (windowMs, max, message = 'Too many requests') => {
 // Different rate limits for different endpoints
 const authRateLimit = createRateLimit(
   15 * 60 * 1000, // 15 minutes
-  70, // limit each IP to 50 requests per windowMs (increased from 5 for development)
+  800, // limit each IP to 50 requests per windowMs (increased from 5 for development)
   'Too many authentication attempts'
 );
 
 const generalRateLimit = createRateLimit(
   15 * 60 * 1000, // 15 minutes
-  200, // limit each IP to 100 requests per windowMs
+  1000, // limit each IP to 100 requests per windowMs
   'Too many requests'
 );
 
 const uploadRateLimit = createRateLimit(
   60 * 60 * 1000, // 1 hour
-  30, // limit each IP to 20 uploads per hour
+  70, // limit each IP to 20 uploads per hour
   'Too many file uploads'
 );
 
