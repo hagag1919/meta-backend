@@ -117,6 +117,15 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Also provide health endpoint under /api path for frontend compatibility
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
 app.use('/api/auth', require('./routes/auth'));
 
 app.use('/api/users', sanitizeInputs, authenticateToken, require('./routes/users'));
@@ -133,6 +142,7 @@ app.use('/api/reports', sanitizeInputs, authenticateToken, require('./routes/rep
 app.use('/api/settings', sanitizeInputs, authenticateToken, require('./routes/settings'));
 app.use('/api/chat', sanitizeInputs, authenticateToken, require('./routes/chat'));
 app.use('/api/companies', sanitizeInputs, authenticateToken, require('./routes/companies'));
+app.use('/api/exports', sanitizeInputs, require('./routes/exports'));
 
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });

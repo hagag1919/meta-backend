@@ -31,8 +31,9 @@ const XSS_PATTERNS = [
 // Command Injection patterns
 const COMMAND_INJECTION_PATTERNS = [
   // /[;&|`$(){}[\]\\]/g, // This pattern is too broad and blocks common password characters.
-  /\b(rm|del|format|fdisk|mkfs|shutdown|reboot)\b/gi,
-  /\b(wget|curl|nc|netcat|telnet|ssh|bash|sh|zsh)\b/gi
+  /\b(rm\s+|del\s+|fdisk\s+|mkfs\s+|shutdown\s+|reboot\s+)\b/gi, // More specific: require space after dangerous commands
+  /\b(wget\s+|curl\s+|nc\s+|netcat\s+|telnet\s+|ssh\s+|bash\s+|sh\s+|zsh\s+)\b/gi,
+  /;\s*(rm|del|fdisk|mkfs|shutdown|reboot|wget|curl|nc|netcat|telnet|ssh|bash|sh|zsh)\b/gi // Command chaining
 ];
 
 // Path Traversal patterns
