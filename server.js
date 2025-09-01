@@ -1,4 +1,13 @@
 const express = require('express');
+// Prefer IPv4 first to avoid DNS resolution issues on some Windows setups
+try {
+  const dns = require('dns');
+  if (typeof dns.setDefaultResultOrder === 'function') {
+    dns.setDefaultResultOrder('ipv4first');
+  }
+} catch (e) {
+  // no-op
+}
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');

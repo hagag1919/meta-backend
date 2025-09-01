@@ -41,10 +41,142 @@ const generateRefreshToken = (userId) => {
   });
 };
 
-// @route   POST /api/auth/register
-// @desc    Register new user
+// @route   POST /api/auth/register-request
+// @desc    Request registration as client or developer
 // @access  Public
-router.post('/register', 
+router.post('/register-request', 
+  authRateLimit,
+  validateEmail,
+  [
+    body('first_name')
+      .trim()
+      .isLength({ min: 2, max: 50 })
+      .matches(/^[a-zA-Z\s]+$/)
+      .withMessage('First name must be 2-50 characters and contain only letters'),
+    body('last_name')
+      .trim()
+      .isLength({ min: 2, max: 50 })
+      .matches(/^[a-zA-Z\s]+$/)
+      .withMessage('Last name must be 2-50 characters and contain only letters'),
+    body('role')
+      .isIn(['developer', 'client'])
+      .withMessage('Only developer and client roles are allowed for registration requests')
+  ],
+  async (req, res, next) => {
+  try {
+    const { email, first_name, last_name, phone, role = 'developer' } = req.body;
+
+    // Block admin registration requests
+    if (role === 'administrator') {
+      return res.status(403).json({ error: 'Admin registration is not allowed through this endpoint' });
+    }
+
+    // Check if user already exists
+    const existingUser = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existingUser.rows.length > 0) {
+      return res.status(409).json({ error: 'User already exists with this email' });
+    }
+
+    // Generate a random password
+    const generatedPassword = crypto.randomBytes(8).toString('hex').slice(0, 12) + 'A1!';
+    
+    // Hash password
+    const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
+    const hashedPassword = await bcrypt.hash(generatedPassword, saltRounds);
+
+    // Insert new user with email_verified as false initially
+    const query = `
+      INSERT INTO users (email, password_hash, first_name, last_name, phone, role, email_verified, is_active)
+      VALUES ($1, $2, $3, $4, $5, $6, false, true)
+      RETURNING id, email, first_name, last_name, role, created_at
+    `;
+    
+    const values = [email, hashedPassword, first_name, last_name, phone, role];
+    const result = await db.query(query, values);
+    const user = result.rows[0];
+
+    // Send email with credentials
+    try {
+      await emailTransporter.sendMail({
+        from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+        to: email,
+        subject: 'Welcome to Meta Project Management - Account Created',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">Welcome to Meta Project Management!</h2>
+            <p>Hello ${first_name} ${last_name},</p>
+            <p>Your account has been created successfully. Here are your login credentials:</p>
+            <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
+              <p><strong>Email:</strong> ${email}</p>
+              <p><strong>Password:</strong> ${generatedPassword}</p>
+              <p><strong>Role:</strong> ${role}</p>
+            </div>
+            <p>Please keep these credentials safe and consider changing your password after your first login.</p>
+            <p>You can access the system at: <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/login">Login Here</a></p>
+            <p>Best regards,<br>Meta Project Management Team</p>
+          </div>
+        `
+      });
+    } catch (emailError) {
+      console.error('Failed to send welcome email:', emailError);
+      // Don't fail the registration if email fails
+    }
+
+    // Generate tokens
+    const token = generateToken(user.id);
+    const refreshToken = generateRefreshToken(user.id);
+
+    // Add user to general chat room automatically
+    try {
+      // Find the general discussion room (where project_id is NULL and name contains 'General')
+      const generalRoomQuery = `
+        SELECT id FROM chat_rooms 
+        WHERE project_id IS NULL 
+        AND (LOWER(name) LIKE '%general%' OR LOWER(name) LIKE '%discussion%')
+        LIMIT 1
+      `;
+      const generalRoomResult = await db.query(generalRoomQuery);
+      
+      if (generalRoomResult.rows.length > 0) {
+        const generalRoomId = generalRoomResult.rows[0].id;
+        
+        // Add user to general chat room
+        await db.query(
+          'INSERT INTO chat_participants (chat_room_id, user_id) VALUES ($1, $2) ON CONFLICT (chat_room_id, user_id) DO NOTHING',
+          [generalRoomId, user.id]
+        );
+      }
+    } catch (chatError) {
+      // Log the error but don't fail registration
+      console.error('Failed to add user to general chat room:', chatError);
+    }
+
+    // Log activity
+    await db.query(
+      'INSERT INTO activity_logs (user_id, action, entity_type, details) VALUES ($1, $2, $3, $4)',
+      [user.id, 'user_registration_requested', 'user', { email: user.email, role: user.role }]
+    );
+
+    res.status(201).json({
+      message: 'Registration request processed successfully. Check your email for login credentials.',
+      user: {
+        id: user.id,
+        email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @route   POST /api/auth/register-admin
+// @desc    Register new admin user (restricted endpoint)
+// @access  Private (Admin only)
+router.post('/register-admin', 
+  authenticateToken,
   authRateLimit,
   validateEmail,
   validatePassword,
@@ -58,15 +190,17 @@ router.post('/register',
       .trim()
       .isLength({ min: 2, max: 50 })
       .matches(/^[a-zA-Z\s]+$/)
-      .withMessage('Last name must be 2-50 characters and contain only letters'),
-    body('role')
-      .optional()
-      .isIn(['administrator', 'developer', 'client'])
-      .withMessage('Invalid role')
+      .withMessage('Last name must be 2-50 characters and contain only letters')
   ],
   async (req, res, next) => {
   try {
-    const { email, password, first_name, last_name, phone, role = 'developer' } = req.body;
+    // Check if current user is admin
+    const currentUserQuery = await db.query('SELECT role FROM users WHERE id = $1', [req.user.userId]);
+    if (currentUserQuery.rows.length === 0 || currentUserQuery.rows[0].role !== 'administrator') {
+      return res.status(403).json({ error: 'Only administrators can create admin accounts' });
+    }
+
+    const { email, password, first_name, last_name, phone } = req.body;
 
     // Check if user already exists
     const existingUser = await db.query('SELECT id FROM users WHERE email = $1', [email]);
@@ -78,14 +212,14 @@ router.post('/register',
     const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Insert new user
+    // Insert new admin user
     const query = `
-      INSERT INTO users (email, password_hash, first_name, last_name, phone, role)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO users (email, password_hash, first_name, last_name, phone, role, email_verified)
+      VALUES ($1, $2, $3, $4, $5, 'administrator', true)
       RETURNING id, email, first_name, last_name, role, created_at
     `;
     
-    const values = [email, hashedPassword, first_name, last_name, phone, role];
+    const values = [email, hashedPassword, first_name, last_name, phone];
     const result = await db.query(query, values);
     const user = result.rows[0];
 
@@ -121,11 +255,11 @@ router.post('/register',
     // Log activity
     await db.query(
       'INSERT INTO activity_logs (user_id, action, entity_type, details) VALUES ($1, $2, $3, $4)',
-      [user.id, 'user_registered', 'user', { email: user.email }]
+      [user.id, 'admin_user_created', 'user', { email: user.email, created_by: req.user.userId }]
     );
 
     res.status(201).json({
-      message: 'User registered successfully',
+      message: 'Admin user created successfully',
       user,
       token,
       refreshToken
