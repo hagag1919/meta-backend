@@ -196,9 +196,9 @@ router.put('/profile', [
 });
 
 // @route   PUT /api/users/:id
-// @desc    Update user (Admin only)
-// @access  Private (Admin only)
-router.put('/:id', validateUUID, requireRole(['administrator']), [
+// @desc    Update user (Admin can update any user, users can update their own profile with limited fields)
+// @access  Private (Admin only for all fields, or self for limited fields)
+router.put('/:id', validateUUID, [
   body('first_name').optional().trim().isLength({ min: 2, max: 100 }),
   body('last_name').optional().trim().isLength({ min: 2, max: 100 }),
   body('email').optional().isEmail().normalizeEmail(),
@@ -209,7 +209,24 @@ router.put('/:id', validateUUID, requireRole(['administrator']), [
 ], async (req, res, next) => {
   try {
     const { id } = req.params;
-    const allowedFields = ['first_name', 'last_name', 'email', 'phone', 'role', 'is_active', 'language_preference'];
+    const currentUserId = req.user.id;
+    const userRole = req.user.role;
+    
+    // Allow users to update their own profile (limited fields) or admins to update any user
+    const isSelfUpdate = currentUserId === id;
+    const isAdmin = userRole === 'administrator';
+    
+    if (!isSelfUpdate && !isAdmin) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    // Define allowed fields based on role and whether it's self-update
+    let allowedFields = [];
+    if (isAdmin) {
+      allowedFields = ['first_name', 'last_name', 'email', 'phone', 'role', 'is_active', 'language_preference'];
+    } else if (isSelfUpdate) {
+      allowedFields = ['first_name', 'last_name', 'email', 'phone', 'language_preference'];
+    }
     
     // Filter allowed fields
     const updates = {};
@@ -254,13 +271,10 @@ router.put('/:id', validateUUID, requireRole(['administrator']), [
     // Log activity
     await db.query(
       'INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details) VALUES ($1, $2, $3, $4, $5)',
-      [req.user.id, 'user_updated', 'user', id, updates]
+      [currentUserId, 'user_updated', 'user', id, updates]
     );
 
-    res.json({
-      message: 'User updated successfully',
-      user: result.rows[0]
-    });
+    res.json({ user: result.rows[0] });
   } catch (error) {
     next(error);
   }
